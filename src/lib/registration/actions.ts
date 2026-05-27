@@ -17,43 +17,67 @@ import {
 // ----- OTP actions -----
 
 export async function requestOtpAction(_prev: unknown, formData: FormData) {
-  const parsed = emailSchema.safeParse({ email: formData.get("email") });
-  if (!parsed.success) {
+  try {
+    const parsed = emailSchema.safeParse({ email: formData.get("email") });
+    if (!parsed.success) {
+      return {
+        ok: false as const,
+        error: parsed.error.issues[0]?.message ?? "Invalid email",
+      };
+    }
+    const email = parsed.data.email;
+
+    // Reject duplicate registration BEFORE OTP burn
+    const existing = await prisma.student.findUnique({ where: { email } });
+    if (existing) {
+      const tok = await prisma.token.findUnique({
+        where: { studentId: existing.id },
+      });
+      return {
+        ok: false as const,
+        error: `This email is already registered (token #${tok?.tokenNumber ?? "—"}). Use a different email or contact the desk.`,
+      };
+    }
+
+    const result = await authSendOtp(email);
+    if (!result.ok) return { ok: false as const, error: result.error };
+    return { ok: true as const, email };
+  } catch (e) {
+    // Surface actual error to logs (and user) so we can debug prod issues
+    const msg = e instanceof Error ? `${e.name}: ${e.message}` : String(e);
+    // eslint-disable-next-line no-console
+    console.error("[requestOtpAction] failure:", msg, e);
     return {
       ok: false as const,
-      error: parsed.error.issues[0]?.message ?? "Invalid email",
+      error: `Server error — please try again in a moment. (${msg.slice(0, 120)})`,
     };
   }
-  const email = parsed.data.email;
-
-  // Reject duplicate registration BEFORE OTP burn
-  const existing = await prisma.student.findUnique({ where: { email } });
-  if (existing) {
-    return {
-      ok: false as const,
-      error: `This email is already registered (token #${(await prisma.token.findUnique({ where: { studentId: existing.id } }))?.tokenNumber ?? "—"}). Use a different email or contact the desk.`,
-    };
-  }
-
-  const result = await authSendOtp(email);
-  if (!result.ok) return { ok: false as const, error: result.error };
-  return { ok: true as const, email };
 }
 
 export async function verifyOtpAction(_prev: unknown, formData: FormData) {
-  const parsed = otpSchema.safeParse({
-    email: formData.get("email"),
-    code: formData.get("code"),
-  });
-  if (!parsed.success) {
+  try {
+    const parsed = otpSchema.safeParse({
+      email: formData.get("email"),
+      code: formData.get("code"),
+    });
+    if (!parsed.success) {
+      return {
+        ok: false as const,
+        error: parsed.error.issues[0]?.message ?? "Invalid input",
+      };
+    }
+    const result = await authVerifyOtp(parsed.data.email, parsed.data.code);
+    if (!result.ok) return { ok: false as const, error: result.error };
+    return { ok: true as const, email: result.verifiedEmail };
+  } catch (e) {
+    const msg = e instanceof Error ? `${e.name}: ${e.message}` : String(e);
+    // eslint-disable-next-line no-console
+    console.error("[verifyOtpAction] failure:", msg, e);
     return {
       ok: false as const,
-      error: parsed.error.issues[0]?.message ?? "Invalid input",
+      error: `Server error — please try again. (${msg.slice(0, 120)})`,
     };
   }
-  const result = await authVerifyOtp(parsed.data.email, parsed.data.code);
-  if (!result.ok) return { ok: false as const, error: result.error };
-  return { ok: true as const, email: result.verifiedEmail };
 }
 
 // ----- Registration submit -----
