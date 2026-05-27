@@ -11,7 +11,17 @@ function makeClient() {
       "DATABASE_URL is not set in environment — Prisma cannot connect"
     );
   }
-  const adapter = new PrismaPg({ connectionString });
+  // CRITICAL: cap pool to 1 per serverless instance.
+  // Supabase free tier gives ~60 concurrent connections. Vercel may scale
+  // to 100+ function instances under a registration burst. Without max:1,
+  // each instance opens multiple connections and the Supabase pool exhausts
+  // within seconds, returning auth errors mid-drive.
+  const adapter = new PrismaPg({
+    connectionString,
+    max: 1,
+    idleTimeoutMillis: 5_000,
+    connectionTimeoutMillis: 10_000,
+  });
   return new PrismaClient({
     adapter,
     log:

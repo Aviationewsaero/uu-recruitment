@@ -214,7 +214,8 @@ export async function submitRegistrationAction(
     });
   }
 
-  // 6. Confirmation email (non-blocking failure tolerance)
+  // 6. Confirmation email — log failures, never silent.
+  // Don't roll back the registration if email fails — student has their token.
   const admitCardUrl = `${env.APP_URL}/api/admit-card/${registrationId}`;
   const tmpl = registrationConfirmation({
     fullName: data.fullName,
@@ -222,10 +223,22 @@ export async function submitRegistrationAction(
     tokenNumber,
     admitCardUrl,
   });
-  await sendEmail(
+  const emailResult = await sendEmail(
     { to: email, subject: tmpl.subject, html: tmpl.html },
     { studentId, template: "registration_confirmation" }
-  ).catch(() => undefined);
+  ).catch((e) => ({
+    ok: false as const,
+    error: e instanceof Error ? e.message : String(e),
+  }));
+  if (!emailResult.ok) {
+    // eslint-disable-next-line no-console
+    console.error("[submitRegistration] confirmation email failed:", {
+      studentId,
+      registrationId,
+      email,
+      error: "error" in emailResult ? emailResult.error : "unknown",
+    });
+  }
 
   // 7. Audit log
   await prisma.auditLog.create({

@@ -7,7 +7,25 @@ loadEnv({ path: ".env.local" });
 import { PrismaClient } from "../src/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 
-const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL ?? "" });
+const dbUrl = process.env.DATABASE_URL ?? "";
+
+// Safety guard: refuse to seed if URL looks local but caller explicitly
+// asked for prod. Prevents the foot-gun where someone runs `npm run seed`
+// expecting prod but hits local Postgres (this exact bug bit us during deploy).
+if (process.env.SEED_TARGET === "prod" && /localhost|127\.0\.0\.1/.test(dbUrl)) {
+  console.error(
+    "❌ Refusing to seed: SEED_TARGET=prod but DATABASE_URL points at localhost."
+  );
+  console.error("   Export the prod DATABASE_URL in shell before running.");
+  process.exit(1);
+}
+
+if (!dbUrl) {
+  console.error("❌ DATABASE_URL is not set — nothing to seed.");
+  process.exit(1);
+}
+
+const adapter = new PrismaPg({ connectionString: dbUrl, max: 1 });
 const prisma = new PrismaClient({ adapter });
 
 const ROOMS = [
