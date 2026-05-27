@@ -1,36 +1,45 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# UU Aviation Recruitment Platform
 
-## Getting Started
+Production MVP for the Uttaranchal University aviation industry campus drive.
+Built by Elite World Services on a 7-day timeline.
 
-First, run the development server:
+**Stack:** Next.js 16 (App Router) · TypeScript · Tailwind 4 · Supabase (Postgres + Auth + Storage + Realtime) · Prisma 7 · Resend · Vercel
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+**Setup:** See [`SETUP.md`](./SETUP.md) — written for non-developers, ~45 min start to deployed.
+
+## Build sequence
+
+| Day | Deliverable |
+|---|---|
+| 1 | Scaffold + schema + brand + deploy ← *you are here* |
+| 2 | Student registration (OTP, form, upload, admit card) |
+| 3 | Token engine + admin auth |
+| 4 | Recruiter dashboard |
+| 5 | Live queue + TV display (Supabase Realtime) |
+| 6 | Admin panel + bulk email + analytics |
+| 7 | Load test (700 concurrent) + operator runbook + backups |
+
+## Repo layout
+
+```
+prisma/schema.prisma     # 7-table data model
+src/app/                 # routes (App Router)
+  page.tsx               # public landing
+  register/              # student flow  (Day 2)
+  admin/                 # admin console (Day 3+6)
+  recruiter/             # recruiter UI  (Day 4)
+  display/               # TV board     (Day 5)
+src/lib/
+  prisma.ts              # singleton DB client
+  supabase/              # server, client, admin (service-role)
+  email.ts               # Resend wrapper
+  utils.ts               # cn() helper
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Daily commands
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+npm run dev              # local
+npx prisma studio        # DB GUI
+npx prisma migrate dev   # after schema edits
+```

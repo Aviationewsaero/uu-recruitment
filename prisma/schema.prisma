@@ -1,0 +1,198 @@
+// Uttaranchal University Aviation Recruitment Platform
+// 7-table v1 schema. Designed for 700+ concurrent students in a single drive.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  // Connection URLs live in prisma.config.ts (Prisma 7 requirement)
+}
+
+// ----- Enums -----
+
+enum UserRole {
+  SUPER_ADMIN
+  RECRUITER
+  DESK_OPERATOR
+  EMAIL_MANAGER
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+  PREFER_NOT_TO_SAY
+}
+
+enum InterviewStatus {
+  PENDING
+  SHORTLISTED
+  REJECTED
+  HOLD
+  RE_INTERVIEW
+  SELECTED
+}
+
+enum TokenStatus {
+  WAITING
+  CALLED
+  IN_PROGRESS
+  DONE
+  SKIPPED
+  NO_SHOW
+}
+
+enum EmailStatus {
+  QUEUED
+  SENT
+  FAILED
+  BOUNCED
+}
+
+// ----- Models -----
+
+model Student {
+  id              String          @id @default(uuid()) @db.Uuid
+  registrationId  String          @unique // human-readable, e.g. "UU-AV-2026-0001"
+  // Identity
+  fullName        String
+  fatherName      String
+  motherName      String
+  phone           String
+  email           String          @unique // email-locked at OTP verification
+  gender          Gender
+  address         String
+  // Academics
+  course          String
+  customCourse    String?
+  semester        String
+  specialization  String?
+  tenthPercent    Decimal         @db.Decimal(5, 2)
+  twelfthPercent  Decimal         @db.Decimal(5, 2)
+  tenthState      String
+  twelfthState    String
+  graduationCgpa  Decimal?        @db.Decimal(4, 2)
+  // Documents (Supabase Storage paths)
+  resumeUrl       String?
+  passportPhoto   String?
+  // Status
+  status          InterviewStatus @default(PENDING)
+  consentGiven    Boolean         @default(false)
+  // Relations
+  token           Token?
+  interviewLogs   InterviewLog[]
+  emailLogs       EmailLog[]
+  // Audit
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([status])
+  @@index([course])
+  @@index([createdAt])
+}
+
+model Token {
+  id            String      @id @default(uuid()) @db.Uuid
+  tokenNumber   Int         @unique // monotonic, allocated via Postgres sequence
+  studentId     String      @unique @db.Uuid
+  student       Student     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  roomId        String?     @db.Uuid
+  room          Room?       @relation(fields: [roomId], references: [id])
+  status        TokenStatus @default(WAITING)
+  calledAt      DateTime?
+  startedAt     DateTime?
+  completedAt   DateTime?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([status, roomId])
+  @@index([roomId, tokenNumber])
+}
+
+model Room {
+  id            String         @id @default(uuid()) @db.Uuid
+  roomNumber    String         @unique // "R1", "R2", "Boardroom-A"
+  displayName   String
+  recruiterId   String?        @db.Uuid
+  recruiter     User?          @relation(fields: [recruiterId], references: [id])
+  active        Boolean        @default(true)
+  currentTokenId String?       @db.Uuid // pointer to currently-called token in this room
+  tokens        Token[]
+  interviewLogs InterviewLog[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model InterviewLog {
+  id            String          @id @default(uuid()) @db.Uuid
+  studentId     String          @db.Uuid
+  student       Student         @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  recruiterId   String          @db.Uuid
+  recruiter     User            @relation(fields: [recruiterId], references: [id])
+  roomId        String          @db.Uuid
+  room          Room            @relation(fields: [roomId], references: [id])
+  rating        Int? // 1-5
+  notes         String?
+  decision      InterviewStatus
+  startedAt     DateTime
+  endedAt       DateTime
+  createdAt     DateTime        @default(now())
+
+  @@index([studentId])
+  @@index([recruiterId])
+  @@index([decision])
+}
+
+// Mirrors Supabase Auth users — id matches auth.users.id
+model User {
+  id            String         @id @db.Uuid // == auth.users.id
+  email         String         @unique
+  fullName      String
+  role          UserRole
+  active        Boolean        @default(true)
+  rooms         Room[]
+  interviewLogs InterviewLog[]
+  auditLogs     AuditLog[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@index([role])
+}
+
+model EmailLog {
+  id           String      @id @default(uuid()) @db.Uuid
+  studentId    String?     @db.Uuid
+  student      Student?    @relation(fields: [studentId], references: [id], onDelete: SetNull)
+  toEmail      String
+  template     String // "registration_confirmation" | "selected" | "rejected" | "hold" | "re_interview" | "bulk_announcement"
+  subject      String
+  status       EmailStatus @default(QUEUED)
+  providerId   String? // Resend message id
+  errorMessage String?
+  retries      Int         @default(0)
+  sentAt       DateTime?
+  createdAt    DateTime    @default(now())
+
+  @@index([status])
+  @@index([template])
+  @@index([createdAt])
+}
+
+model AuditLog {
+  id        String   @id @default(uuid()) @db.Uuid
+  actorId   String?  @db.Uuid
+  actor     User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  action    String // "student.update", "student.delete", "interview.submit", "email.bulk_send", etc.
+  target    String? // entity id touched
+  payload   Json? // before/after snapshot or relevant data
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([actorId])
+  @@index([action])
+  @@index([createdAt])
+}

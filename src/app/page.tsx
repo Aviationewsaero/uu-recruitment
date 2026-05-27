@@ -1,65 +1,82 @@
-import Image from "next/image";
+import Link from "next/link";
 
-export default function Home() {
+export default function HomePage() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <main className="flex-1">
+      {/* Hero */}
+      <section className="bg-gradient-to-br from-brand-navy via-brand-navy-dark to-brand-blue text-white">
+        <div className="mx-auto max-w-5xl px-6 py-20 sm:py-28">
+          <div className="flex items-center gap-3 text-sm uppercase tracking-widest text-white/70">
+            <span className="inline-block h-px w-8 bg-brand-green" />
+            Powered by Elite World Services
+          </div>
+          <h1 className="mt-4 text-4xl font-bold leading-tight sm:text-5xl">
+            Uttaranchal University
+            <br />
+            <span className="text-brand-green">Aviation Recruitment 2026</span>
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <p className="mt-6 max-w-2xl text-lg text-white/85">
+            Official campus drive portal. Register with your university email,
+            receive your interview token, and meet recruiters from India&apos;s
+            leading airport service partners — all in one day.
           </p>
+          <div className="mt-10 flex flex-wrap gap-4">
+            <Link
+              href="/register"
+              className="rounded-md bg-brand-green px-6 py-3 font-semibold text-white shadow-lg shadow-brand-green/30 transition hover:bg-brand-green-dark"
+            >
+              Register as Student →
+            </Link>
+            <Link
+              href="/admin"
+              className="rounded-md border border-white/30 bg-white/10 px-6 py-3 font-medium text-white backdrop-blur transition hover:bg-white/20"
+            >
+              Staff Login
+            </Link>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+      </section>
+
+      {/* Process */}
+      <section className="mx-auto max-w-5xl px-6 py-16">
+        <h2 className="text-2xl font-semibold text-brand-text">How it works</h2>
+        <ol className="mt-8 grid gap-6 sm:grid-cols-3">
+          {[
+            {
+              n: "1",
+              title: "Register",
+              body: "Scan the QR at the registration desk, verify your email with a one-time code, and fill the recruitment form.",
+            },
+            {
+              n: "2",
+              title: "Receive token",
+              body: "Get a unique token number and a digital admit card. Wait for your number on the live display screen.",
+            },
+            {
+              n: "3",
+              title: "Interview",
+              body: "Meet the recruiter in your allotted room. Decisions are communicated by email within 24 hours.",
+            },
+          ].map((s) => (
+            <li
+              key={s.n}
+              className="rounded-lg border border-brand-border bg-brand-surface p-6 shadow-sm"
+            >
+              <div className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-brand-navy text-white font-semibold">
+                {s.n}
+              </div>
+              <h3 className="mt-4 text-lg font-semibold">{s.title}</h3>
+              <p className="mt-2 text-sm text-brand-muted">{s.body}</p>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      <footer className="border-t border-brand-border bg-brand-surface py-8 text-center text-sm text-brand-muted">
+        <p>
+          © 2026 Elite World Services · Aviation Recruitment Platform · v0.1
+        </p>
+      </footer>
+    </main>
   );
 }
