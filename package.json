@@ -9,6 +9,8 @@
     "lint": "eslint",
     "seed": "tsx prisma/seed.ts",
     "seed:students": "tsx prisma/seed-students.ts",
+    "load-test": "tsx scripts/load-test.ts",
+    "backup": "./scripts/backup.sh",
     "postinstall": "prisma generate"
   },
   "dependencies": {

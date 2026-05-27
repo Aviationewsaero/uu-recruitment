@@ -17,7 +17,12 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full antialiased">
       <body className="min-h-full flex flex-col bg-brand-bg text-brand-text">
-        {children}
+        <a href="#main" className="skip-link">
+          Skip to main content
+        </a>
+        <div id="main" className="flex flex-col flex-1">
+          {children}
+        </div>
         <Toaster position="top-right" richColors closeButton />
       </body>
     </html>

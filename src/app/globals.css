@@ -31,12 +31,39 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-/* Print styles for admit cards + interview slips */
+/* Skip-to-content link — invisible until keyboard-focused */
+.skip-link {
+  position: absolute;
+  top: -100px;
+  left: 8px;
+  z-index: 100;
+  padding: 8px 12px;
+  background: var(--color-brand-navy);
+  color: white;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  transition: top 0.15s;
+}
+.skip-link:focus {
+  top: 8px;
+}
+
+/* Print styles — admit cards, interview slips, operator runbook */
 @media print {
   body {
-    background: white;
+    background: white !important;
   }
-  .no-print {
+  .no-print,
+  aside[class*="border-r"],
+  header[class*="border-b"] form {
     display: none !important;
+  }
+  .print-runbook {
+    box-shadow: none !important;
+    border: 0 !important;
+  }
+  a[href]::after {
+    content: "";
   }
 }
