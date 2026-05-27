@@ -96,7 +96,7 @@ model Student {
 
 model Token {
   id            String      @id @default(uuid()) @db.Uuid
-  tokenNumber   Int         @unique // monotonic, allocated via Postgres sequence
+  tokenNumber   Int         @unique @default(autoincrement()) // atomic Postgres SERIAL — no race under concurrency
   studentId     String      @unique @db.Uuid
   student       Student     @relation(fields: [studentId], references: [id], onDelete: Cascade)
   roomId        String?     @db.Uuid

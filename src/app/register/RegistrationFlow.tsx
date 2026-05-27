@@ -1,0 +1,486 @@
+"use client";
+
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/Button";
+import { Input, Select, Textarea } from "@/components/ui/Input";
+import {
+  FormField,
+  FormRow,
+  FormSection,
+  Label,
+  FieldError,
+  FieldHint,
+} from "@/components/ui/Form";
+import {
+  registrationFormSchema,
+  type RegistrationFormValues,
+  GENDER_OPTIONS,
+  COURSE_OPTIONS,
+  SEMESTER_OPTIONS,
+} from "@/lib/registration/schema";
+import {
+  requestOtpAction,
+  verifyOtpAction,
+  submitRegistrationAction,
+} from "@/lib/registration/actions";
+
+type Step = "email" | "otp" | "form";
+
+export function RegistrationFlow() {
+  const [step, setStep] = useState<Step>("email");
+  const [email, setEmail] = useState("");
+  const router = useRouter();
+
+  return (
+    <div className="rounded-xl border border-brand-border bg-brand-surface p-6 sm:p-8 shadow-sm">
+      <StepIndicator current={step} />
+      {step === "email" && (
+        <EmailStep
+          onSent={(e) => {
+            setEmail(e);
+            setStep("otp");
+          }}
+        />
+      )}
+      {step === "otp" && (
+        <OtpStep
+          email={email}
+          onVerified={() => setStep("form")}
+          onBack={() => setStep("email")}
+        />
+      )}
+      {step === "form" && (
+        <RegistrationForm
+          email={email}
+          onSubmitted={(regId) => router.push(`/register/success/${regId}`)}
+        />
+      )}
+    </div>
+  );
+}
+
+// ---------- Step indicator ----------
+function StepIndicator({ current }: { current: Step }) {
+  const steps: { id: Step; label: string }[] = [
+    { id: "email", label: "Verify email" },
+    { id: "otp", label: "Enter code" },
+    { id: "form", label: "Your details" },
+  ];
+  const idx = steps.findIndex((s) => s.id === current);
+  return (
+    <ol className="mb-6 flex items-center gap-2 text-xs">
+      {steps.map((s, i) => {
+        const active = i === idx;
+        const done = i < idx;
+        return (
+          <li key={s.id} className="flex items-center gap-2">
+            <span
+              className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-semibold ${
+                done
+                  ? "bg-brand-green text-white"
+                  : active
+                    ? "bg-brand-navy text-white"
+                    : "bg-brand-bg text-brand-muted"
+              }`}
+            >
+              {done ? "✓" : i + 1}
+            </span>
+            <span
+              className={
+                active || done ? "text-brand-text font-medium" : "text-brand-muted"
+              }
+            >
+              {s.label}
+            </span>
+            {i < steps.length - 1 && (
+              <span className="mx-1 h-px w-6 bg-brand-border" />
+            )}
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+// ---------- Email step ----------
+function EmailStep({ onSent }: { onSent: (email: string) => void }) {
+  const [pending, start] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        setError(null);
+        const fd = new FormData(e.currentTarget);
+        start(async () => {
+          const res = await requestOtpAction(null, fd);
+          if (!res.ok) {
+            setError(res.error);
+            return;
+          }
+          toast.success("Verification code sent — check your inbox");
+          onSent(res.email);
+        });
+      }}
+    >
+      <FormField>
+        <Label htmlFor="email" required>
+          Your email
+        </Label>
+        <Input
+          id="email"
+          name="email"
+          type="email"
+          autoComplete="email"
+          required
+          placeholder="you@uttaranchaluniversity.edu.in"
+          disabled={pending}
+        />
+        <FieldHint>
+          You&apos;ll receive a 6-digit code. This email cannot be changed later.
+        </FieldHint>
+        <FieldError message={error ?? undefined} />
+      </FormField>
+      <Button type="submit" size="lg" className="mt-6 w-full" disabled={pending}>
+        {pending ? "Sending code…" : "Send verification code →"}
+      </Button>
+    </form>
+  );
+}
+
+// ---------- OTP step ----------
+function OtpStep({
+  email,
+  onVerified,
+  onBack,
+}: {
+  email: string;
+  onVerified: () => void;
+  onBack: () => void;
+}) {
+  const [pending, start] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        setError(null);
+        const fd = new FormData(e.currentTarget);
+        fd.set("email", email);
+        start(async () => {
+          const res = await verifyOtpAction(null, fd);
+          if (!res.ok) {
+            setError(res.error);
+            return;
+          }
+          toast.success("Email verified");
+          onVerified();
+        });
+      }}
+    >
+      <p className="mb-4 text-sm text-brand-muted">
+        Code sent to <strong className="text-brand-text">{email}</strong>.{" "}
+        <button
+          type="button"
+          onClick={onBack}
+          className="text-brand-blue underline-offset-2 hover:underline"
+        >
+          Change email
+        </button>
+      </p>
+      <FormField>
+        <Label htmlFor="code" required>
+          6-digit code
+        </Label>
+        <Input
+          id="code"
+          name="code"
+          inputMode="numeric"
+          pattern="[0-9]*"
+          maxLength={6}
+          autoComplete="one-time-code"
+          required
+          placeholder="000000"
+          className="text-center text-2xl tracking-[0.5em] font-mono"
+          disabled={pending}
+        />
+        <FieldHint>
+          In dev mode the code is printed to the server console.
+        </FieldHint>
+        <FieldError message={error ?? undefined} />
+      </FormField>
+      <Button type="submit" size="lg" className="mt-6 w-full" disabled={pending}>
+        {pending ? "Verifying…" : "Verify code →"}
+      </Button>
+    </form>
+  );
+}
+
+// ---------- Full form step ----------
+function RegistrationForm({
+  email,
+  onSubmitted,
+}: {
+  email: string;
+  onSubmitted: (regId: string) => void;
+}) {
+  const [pending, start] = useTransition();
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  const {
+    register,
+    handleSubmit,
+    watch,
+    formState: { errors },
+  } = useForm<RegistrationFormValues>({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(registrationFormSchema) as any,
+  });
+  const watchedCourse = watch("course");
+
+  return (
+    <form
+      onSubmit={handleSubmit((vals) => {
+        setSubmitError(null);
+        start(async () => {
+          const fd = new FormData();
+          for (const [k, v] of Object.entries(vals)) {
+            if (v === undefined || v === null) continue;
+            fd.set(k, v as string | Blob);
+          }
+          const fileForm = document.querySelector<HTMLFormElement>(
+            "#file-fields"
+          );
+          if (fileForm) {
+            const resume = (fileForm.querySelector('[name="resume"]') as HTMLInputElement | null)?.files?.[0];
+            const photo = (fileForm.querySelector('[name="photo"]') as HTMLInputElement | null)?.files?.[0];
+            if (resume) fd.set("resume", resume);
+            if (photo) fd.set("photo", photo);
+          }
+          const res = await submitRegistrationAction(email, fd);
+          if (!res.ok) {
+            setSubmitError(res.error);
+            toast.error("Could not submit — see error below");
+            return;
+          }
+          toast.success(`Registered! Your token is #${res.tokenNumber}`);
+          onSubmitted(res.registrationId);
+        });
+      })}
+      className="space-y-8"
+    >
+      <p className="rounded-md bg-brand-bg border border-brand-border px-3 py-2 text-sm">
+        Registering as: <strong>{email}</strong>{" "}
+        <span className="text-brand-muted">(email locked)</span>
+      </p>
+
+      <FormSection title="Identity">
+        <FormRow cols={2}>
+          <FormField>
+            <Label required>Full name</Label>
+            <Input {...register("fullName")} placeholder="As per Aadhaar / ID" />
+            <FieldError message={errors.fullName?.message} />
+          </FormField>
+          <FormField>
+            <Label required>Phone (10-digit)</Label>
+            <Input
+              {...register("phone")}
+              inputMode="numeric"
+              placeholder="9876543210"
+              maxLength={10}
+            />
+            <FieldError message={errors.phone?.message} />
+          </FormField>
+        </FormRow>
+        <FormRow cols={2}>
+          <FormField>
+            <Label required>Father&apos;s name</Label>
+            <Input {...register("fatherName")} />
+            <FieldError message={errors.fatherName?.message} />
+          </FormField>
+          <FormField>
+            <Label required>Mother&apos;s name</Label>
+            <Input {...register("motherName")} />
+            <FieldError message={errors.motherName?.message} />
+          </FormField>
+        </FormRow>
+        <FormRow cols={2}>
+          <FormField>
+            <Label required>Gender</Label>
+            <Select {...register("gender")} defaultValue="">
+              <option value="" disabled>
+                Select…
+              </option>
+              {GENDER_OPTIONS.map((g) => (
+                <option key={g.value} value={g.value}>
+                  {g.label}
+                </option>
+              ))}
+            </Select>
+            <FieldError message={errors.gender?.message} />
+          </FormField>
+        </FormRow>
+        <FormField>
+          <Label required>Address</Label>
+          <Textarea
+            {...register("address")}
+            rows={3}
+            placeholder="Permanent address"
+          />
+          <FieldError message={errors.address?.message} />
+        </FormField>
+      </FormSection>
+
+      <FormSection title="Academics">
+        <FormRow cols={2}>
+          <FormField>
+            <Label required>Course</Label>
+            <Select {...register("course")} defaultValue="">
+              <option value="" disabled>
+                Select…
+              </option>
+              {COURSE_OPTIONS.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </Select>
+            <FieldError message={errors.course?.message} />
+          </FormField>
+          <FormField>
+            <Label required>Semester</Label>
+            <Select {...register("semester")} defaultValue="">
+              <option value="" disabled>
+                Select…
+              </option>
+              {SEMESTER_OPTIONS.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </Select>
+            <FieldError message={errors.semester?.message} />
+          </FormField>
+        </FormRow>
+        {watchedCourse === "Other (specify)" && (
+          <FormField>
+            <Label required>Specify course name</Label>
+            <Input {...register("customCourse")} />
+            <FieldError message={errors.customCourse?.message} />
+          </FormField>
+        )}
+        <FormField>
+          <Label>Specialization (optional)</Label>
+          <Input {...register("specialization")} />
+        </FormField>
+        <FormRow cols={2}>
+          <FormField>
+            <Label required>10th %</Label>
+            <Input
+              {...register("tenthPercent")}
+              type="number"
+              step="0.01"
+              min={0}
+              max={100}
+              placeholder="e.g. 82.5"
+            />
+            <FieldError message={errors.tenthPercent?.message} />
+          </FormField>
+          <FormField>
+            <Label required>10th board state</Label>
+            <Input {...register("tenthState")} placeholder="e.g. Uttarakhand" />
+            <FieldError message={errors.tenthState?.message} />
+          </FormField>
+        </FormRow>
+        <FormRow cols={2}>
+          <FormField>
+            <Label required>12th %</Label>
+            <Input
+              {...register("twelfthPercent")}
+              type="number"
+              step="0.01"
+              min={0}
+              max={100}
+              placeholder="e.g. 76.4"
+            />
+            <FieldError message={errors.twelfthPercent?.message} />
+          </FormField>
+          <FormField>
+            <Label required>12th board state</Label>
+            <Input {...register("twelfthState")} placeholder="e.g. Uttarakhand" />
+            <FieldError message={errors.twelfthState?.message} />
+          </FormField>
+        </FormRow>
+        <FormField>
+          <Label>Graduation CGPA (optional)</Label>
+          <Input
+            {...register("graduationCgpa")}
+            type="number"
+            step="0.01"
+            min={0}
+            max={10}
+            placeholder="e.g. 7.8"
+          />
+        </FormField>
+      </FormSection>
+
+      <FormSection title="Documents">
+        <div id="file-fields" className="space-y-4">
+          <FormField>
+            <Label required>Resume (PDF or DOCX, max 5MB)</Label>
+            <Input
+              name="resume"
+              type="file"
+              accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+              required
+              className="file:mr-3 file:rounded file:border-0 file:bg-brand-bg file:px-3 file:py-1 file:text-sm file:font-medium"
+            />
+          </FormField>
+          <FormField>
+            <Label required>Passport-size photo (JPEG/PNG/WebP, max 2MB)</Label>
+            <Input
+              name="photo"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              required
+              className="file:mr-3 file:rounded file:border-0 file:bg-brand-bg file:px-3 file:py-1 file:text-sm file:font-medium"
+            />
+          </FormField>
+        </div>
+      </FormSection>
+
+      <FormSection title="Consent">
+        <label className="flex items-start gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            {...register("consentGiven")}
+            className="mt-1 h-4 w-4 rounded border-brand-border accent-brand-green"
+          />
+          <span className="text-sm text-brand-text">
+            I consent to Elite World Services collecting, storing, and processing
+            my data for the purpose of this recruitment drive. I understand my
+            data is held for 18 months and I can request deletion at any time by
+            emailing aviation@ews.aero.
+          </span>
+        </label>
+        <FieldError message={errors.consentGiven?.message} />
+      </FormSection>
+
+      {submitError && (
+        <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          {submitError}
+        </div>
+      )}
+
+      <Button type="submit" size="lg" className="w-full" disabled={pending}>
+        {pending ? "Submitting…" : "Submit registration"}
+      </Button>
+    </form>
+  );
+}
