@@ -80,3 +80,135 @@ export function registrationConfirmation(args: {
 function escape(s: string) {
   return s.replace(/[<>&"]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;" })[c]!);
 }
+
+// ----- Decision emails (one per outcome) -----
+
+type DecisionArgs = { fullName: string; tokenNumber: number; registrationId: string };
+
+export function selectedEmail({ fullName, registrationId }: DecisionArgs) {
+  return {
+    subject: "🎉 Congratulations — You're selected (UU Aviation Recruitment)",
+    html: shell({
+      title: "You're selected!",
+      preview: "Welcome aboard — next steps inside.",
+      bodyHtml: `
+        <p>Dear <strong>${escape(fullName)}</strong>,</p>
+        <p>We are delighted to inform you that you have been <strong style="color:#22c55e;">SELECTED</strong> from the Uttaranchal University Aviation Recruitment Drive.</p>
+        <div class="card">
+          <div class="label">Reference</div>
+          <div class="value">${registrationId}</div>
+        </div>
+        <p><strong>What happens next:</strong></p>
+        <ul>
+          <li>Our HR team will reach out within 3 working days with your offer letter</li>
+          <li>Keep this email for your records — quote your reference ID in all correspondence</li>
+          <li>For urgent questions: <a href="mailto:aviation@ews.aero">aviation@ews.aero</a></li>
+        </ul>
+        <p>Once again — welcome to Elite World Services. We're excited to have you on board.</p>
+      `,
+    }),
+  };
+}
+
+export function shortlistedEmail({ fullName, registrationId }: DecisionArgs) {
+  return {
+    subject: "📋 You're shortlisted — UU Aviation Recruitment",
+    html: shell({
+      title: "You're shortlisted",
+      preview: "Final decision in 5 working days.",
+      bodyHtml: `
+        <p>Dear <strong>${escape(fullName)}</strong>,</p>
+        <p>Thank you for attending the recruitment drive. You have been <strong>shortlisted</strong> based on your interview.</p>
+        <div class="card">
+          <div class="label">Reference</div>
+          <div class="value">${registrationId}</div>
+        </div>
+        <p>We will communicate the final decision within <strong>5 working days</strong>. Please keep an eye on your inbox (and spam folder, just in case).</p>
+        <p>If you have urgent questions, reply to this email or write to <a href="mailto:aviation@ews.aero">aviation@ews.aero</a>.</p>
+      `,
+    }),
+  };
+}
+
+export function holdEmail({ fullName, registrationId }: DecisionArgs) {
+  return {
+    subject: "Your interview status — on hold (UU Aviation Recruitment)",
+    html: shell({
+      title: "On hold",
+      preview: "Decision pending review — we'll update you soon.",
+      bodyHtml: `
+        <p>Dear <strong>${escape(fullName)}</strong>,</p>
+        <p>Thank you for attending the recruitment drive. Your candidature is currently <strong>on hold</strong> pending further review by our hiring team.</p>
+        <div class="card">
+          <div class="label">Reference</div>
+          <div class="value">${registrationId}</div>
+        </div>
+        <p>We'll communicate an update within 7 working days. No action needed from your side right now.</p>
+        <p>Questions? <a href="mailto:aviation@ews.aero">aviation@ews.aero</a></p>
+      `,
+    }),
+  };
+}
+
+export function reInterviewEmail({ fullName, registrationId }: DecisionArgs) {
+  return {
+    subject: "Please come back for a second interview — UU Aviation",
+    html: shell({
+      title: "Second interview requested",
+      preview: "We'd like to speak with you again.",
+      bodyHtml: `
+        <p>Dear <strong>${escape(fullName)}</strong>,</p>
+        <p>Thanks for the first conversation. We'd like to invite you back for a <strong>second round interview</strong> to discuss a few topics in more depth.</p>
+        <div class="card">
+          <div class="label">Reference</div>
+          <div class="value">${registrationId}</div>
+        </div>
+        <p>Please make yourself available at the venue at your earliest. Visit the desk and present this email + your admit card to be re-issued a token.</p>
+        <p>Questions? <a href="mailto:aviation@ews.aero">aviation@ews.aero</a></p>
+      `,
+    }),
+  };
+}
+
+export function rejectedEmail({ fullName, registrationId }: DecisionArgs) {
+  return {
+    subject: "Thank you for participating — UU Aviation Recruitment",
+    html: shell({
+      title: "Thank you for your time",
+      preview: "We won't be moving forward this time.",
+      bodyHtml: `
+        <p>Dear <strong>${escape(fullName)}</strong>,</p>
+        <p>Thank you for attending the recruitment drive and for the time you spent with our team.</p>
+        <p>After careful consideration, we will not be moving forward with your application at this time. This decision in no way reflects on your ability — the competition was strong and we had limited positions to fill.</p>
+        <div class="card">
+          <div class="label">Reference</div>
+          <div class="value">${registrationId}</div>
+        </div>
+        <p>We genuinely wish you the very best in your career. Please do consider us for future opportunities — we run multiple drives a year.</p>
+      `,
+    }),
+  };
+}
+
+export function templateForDecision(
+  decision:
+    | "SELECTED"
+    | "SHORTLISTED"
+    | "HOLD"
+    | "RE_INTERVIEW"
+    | "REJECTED",
+  args: DecisionArgs
+) {
+  switch (decision) {
+    case "SELECTED":
+      return selectedEmail(args);
+    case "SHORTLISTED":
+      return shortlistedEmail(args);
+    case "HOLD":
+      return holdEmail(args);
+    case "RE_INTERVIEW":
+      return reInterviewEmail(args);
+    case "REJECTED":
+      return rejectedEmail(args);
+  }
+}

@@ -1,18 +1,60 @@
-export default function DisplayPage() {
+import { prisma } from "@/lib/prisma";
+import { DisplayBoard } from "./DisplayBoard";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+export default async function DisplayPage() {
+  const rooms = await prisma.room.findMany({
+    where: { active: true },
+    orderBy: { roomNumber: "asc" },
+    include: {
+      tokens: {
+        where: { id: { equals: undefined } }, // placeholder so type works
+      },
+    },
+  });
+
+  // Hydrate current token per room
+  const roomsWithCurrent = await Promise.all(
+    rooms.map(async (r) => {
+      const current = r.currentTokenId
+        ? await prisma.token.findUnique({
+            where: { id: r.currentTokenId },
+            include: { student: { select: { fullName: true } } },
+          })
+        : null;
+      return {
+        id: r.id,
+        roomNumber: r.roomNumber,
+        displayName: r.displayName,
+        currentToken: current
+          ? {
+              tokenNumber: current.tokenNumber,
+              studentName: current.student?.fullName ?? "",
+              status: current.status,
+            }
+          : null,
+      };
+    })
+  );
+
+  const upcoming = await prisma.token.findMany({
+    where: { status: "WAITING" },
+    orderBy: { tokenNumber: "asc" },
+    take: 8,
+    select: { tokenNumber: true },
+  });
+
+  const waitingCount = await prisma.token.count({
+    where: { status: "WAITING" },
+  });
+
   return (
-    <main className="flex-1 bg-brand-navy text-white">
-      <div className="mx-auto max-w-7xl px-6 py-24 text-center">
-        <p className="text-sm uppercase tracking-widest text-white/60">
-          Now serving
-        </p>
-        <p className="mt-4 text-9xl font-bold tabular-nums text-brand-green">
-          —
-        </p>
-        <p className="mt-2 text-lg text-white/70">
-          Live token board — Day 5 deliverable. Designed for a wall-mounted TV
-          in the waiting area.
-        </p>
-      </div>
-    </main>
+    <DisplayBoard
+      rooms={roomsWithCurrent}
+      upcoming={upcoming.map((u) => u.tokenNumber)}
+      waitingCount={waitingCount}
+    />
   );
 }

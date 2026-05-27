@@ -5,6 +5,8 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth-user";
 import { callNextToken } from "@/lib/token-engine";
+import { sendEmail } from "@/lib/email";
+import { templateForDecision } from "@/lib/email/templates";
 
 const decisionSchema = z.object({
   tokenId: z.string().uuid(),
@@ -89,11 +91,29 @@ export async function submitInterviewDecision(
     revalidatePath("/recruiter");
     revalidatePath("/display");
     revalidatePath("/admin");
+    revalidatePath("/admin/queue");
   } catch (e) {
     return {
       ok: false,
       error: e instanceof Error ? e.message : "Submit failed",
     };
+  }
+
+  // Fire decision-result email (non-blocking — if it fails we don't roll back the decision)
+  const student = await prisma.student.findUnique({
+    where: { id: studentId },
+    include: { token: true },
+  });
+  if (student && student.token) {
+    const tmpl = templateForDecision(decision, {
+      fullName: student.fullName,
+      tokenNumber: student.token.tokenNumber,
+      registrationId: student.registrationId,
+    });
+    await sendEmail(
+      { to: student.email, subject: tmpl.subject, html: tmpl.html },
+      { studentId, template: `decision_${decision.toLowerCase()}` }
+    ).catch(() => undefined);
   }
 
   // Optionally call the next token immediately

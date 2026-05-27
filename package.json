@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "seed": "tsx prisma/seed.ts",
+    "seed:students": "tsx prisma/seed-students.ts",
     "postinstall": "prisma generate"
   },
   "dependencies": {
