@@ -38,8 +38,8 @@ const ROOMS = [
 const USERS = [
   {
     id: "00000000-0000-0000-0000-000000000001",
-    email: "admin@ews.aero",
-    fullName: "Super Admin",
+    email: "bhupender@eliteworldservices.com",
+    fullName: "Bhupender — Super Admin",
     role: "SUPER_ADMIN" as const,
   },
   {
