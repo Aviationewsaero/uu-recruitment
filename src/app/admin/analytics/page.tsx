@@ -105,8 +105,8 @@ export default async function AnalyticsPage() {
       {/* Recruiter table */}
       <Section title="Recruiter throughput">
         <div className="overflow-hidden rounded-lg border border-brand-border bg-brand-surface">
-          <table className="w-full text-sm">
-            <thead className="bg-brand-bg text-left text-xs uppercase tracking-widest text-brand-muted">
+          <table className="w-full">
+            <thead className="bg-brand-bg text-left text-xs font-semibold uppercase tracking-widest text-brand-muted">
               <tr>
                 <th className="px-4 py-3">Recruiter</th>
                 <th className="px-4 py-3">Interviews</th>
@@ -124,12 +124,16 @@ export default async function AnalyticsPage() {
               ) : (
                 recruiterPerf.map((r) => (
                   <tr key={r.recruiter} className="border-t border-brand-border">
-                    <td className="px-4 py-3 font-medium">{r.recruiter}</td>
-                    <td className="px-4 py-3 tabular-nums">{r.total}</td>
-                    <td className="px-4 py-3 tabular-nums text-brand-green-dark">
+                    <td className="px-4 py-4 text-base font-semibold text-brand-text">
+                      {r.recruiter}
+                    </td>
+                    <td className="px-4 py-4 text-2xl font-extrabold tabular-nums text-brand-blue">
+                      {r.total}
+                    </td>
+                    <td className="px-4 py-4 text-2xl font-extrabold tabular-nums text-brand-green-dark">
                       {r.selected}
                     </td>
-                    <td className="px-4 py-3 tabular-nums text-brand-muted">
+                    <td className="px-4 py-4 text-base font-bold tabular-nums text-brand-text">
                       {formatDuration(r.avg_sec)}
                     </td>
                   </tr>
@@ -164,11 +168,13 @@ function Tile({
   raw?: boolean;
 }) {
   return (
-    <div className="rounded-lg border border-brand-border bg-brand-surface p-5">
-      <p className="text-xs uppercase tracking-widest text-brand-muted">
+    <div className="rounded-lg border border-brand-border bg-brand-surface p-6">
+      <p className="text-xs font-semibold uppercase tracking-widest text-brand-muted">
         {label}
       </p>
-      <p className={`mt-2 text-3xl font-bold tabular-nums ${accent}`}>
+      <p
+        className={`mt-3 text-6xl font-extrabold leading-none tabular-nums tracking-tight ${accent}`}
+      >
         {raw ? value : Number(value).toLocaleString()}
       </p>
     </div>
@@ -209,13 +215,13 @@ function BarChart({
   const max = Math.max(...data.map((d) => d.value), 1);
   return (
     <div className="rounded-lg border border-brand-border bg-brand-surface p-6">
-      <div className="flex items-end gap-2 h-56">
+      <div className="flex items-end gap-3 h-64">
         {data.map((d) => (
           <div
             key={d.label}
-            className="flex-1 h-full flex flex-col items-center justify-end gap-1.5 group"
+            className="flex-1 h-full flex flex-col items-center justify-end gap-2 group"
           >
-            <span className="text-xs font-bold tabular-nums text-brand-text">
+            <span className="text-2xl font-extrabold tabular-nums text-brand-text leading-none">
               {d.value}
             </span>
             <div
@@ -226,7 +232,7 @@ function BarChart({
               className="w-full rounded-t transition-all"
               title={`${d.label}: ${d.value}`}
             />
-            <span className="text-[10px] text-brand-muted text-center truncate w-full">
+            <span className="text-xs font-semibold text-brand-muted text-center truncate w-full">
               {d.label}
             </span>
           </div>
