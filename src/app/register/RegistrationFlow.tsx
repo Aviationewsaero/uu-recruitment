@@ -511,13 +511,17 @@ function RegistrationForm({
             <Input
               name="photo"
               type="file"
-              accept="image/jpeg,image/png,image/webp"
-              capture="environment"
+              // image/* lets iPhone users pick from gallery OR camera. The
+              // explicit heic/heif entries make sure iOS shows HEIC originals
+              // (our client-side compressor converts them to JPEG before upload).
+              accept="image/jpeg,image/png,image/webp,image/heic,image/heif,image/*"
               required
               className="file:mr-3 file:rounded file:border-0 file:bg-brand-bg file:px-3 file:py-1 file:text-sm file:font-medium"
             />
             <FieldHint>
-              On mobile, you can take a photo directly with your camera.
+              JPEG / PNG / WebP / HEIC. iPhone photos are converted automatically.
+              For best results, pick from your gallery rather than taking a fresh
+              shot.
             </FieldHint>
           </FormField>
         </div>

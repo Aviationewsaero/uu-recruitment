@@ -7,7 +7,13 @@ function required(name: string): string {
 }
 
 function optional(name: string, fallback = ""): string {
-  return process.env[name] ?? fallback;
+  // Vercel sometimes stores env values as empty strings (depends on how the
+  // value was uploaded). Treat empty string the same as missing so the
+  // fallback kicks in. Otherwise EMAIL_MODE="" would silently route emails
+  // through the console provider in production.
+  const v = process.env[name];
+  if (v === undefined || v === "") return fallback;
+  return v;
 }
 
 export const env = {
