@@ -27,7 +27,7 @@ import {
   verifyOtpAction,
   submitRegistrationAction,
 } from "@/lib/registration/actions";
-import { compressImage } from "@/lib/image-compress";
+import { PhotoField } from "./PhotoField";
 
 type Step = "email" | "otp" | "form";
 
@@ -273,6 +273,10 @@ function RegistrationForm({
               if (v === undefined || v === null) continue;
               fd.set(k, v as string | Blob);
             }
+            // PhotoField now owns compression + has already written the
+            // compressed File into the hidden <input name="photo">. We
+            // just read both files out of the DOM and put them on the
+            // FormData payload.
             const fileForm =
               document.querySelector<HTMLFormElement>("#file-fields");
             if (fileForm) {
@@ -281,37 +285,21 @@ function RegistrationForm({
                   '[name="resume"]'
                 ) as HTMLInputElement | null
               )?.files?.[0];
-              // Two photo inputs: gallery upload + camera capture. Prefer
-              // the camera shot if both were filled (student took a new one
-              // after picking from gallery), otherwise fall back to gallery.
-              const cameraPhoto = (
-                fileForm.querySelector(
-                  '[name="photoCamera"]'
-                ) as HTMLInputElement | null
-              )?.files?.[0];
-              const galleryPhoto = (
+              const photo = (
                 fileForm.querySelector(
                   '[name="photo"]'
                 ) as HTMLInputElement | null
               )?.files?.[0];
-              let photo = cameraPhoto ?? galleryPhoto;
               if (!photo) {
-                setSubmitError("Please upload OR take a passport-size photo.");
+                setSubmitError(
+                  "Please pick or take a passport-size photo before submitting."
+                );
                 toast.error("Photo is required");
                 setUploading(false);
                 return;
               }
-              // Compress phone-camera photos so we don't hit Vercel timeouts
-              if (photo) {
-                try {
-                  photo = await compressImage(photo);
-                } catch {
-                  // If compression fails for any reason, fall through with the
-                  // original file — server will reject if it's too large.
-                }
-              }
               if (resume) fd.set("resume", resume);
-              if (photo) fd.set("photo", photo);
+              fd.set("photo", photo);
             }
             const res = await submitRegistrationAction(email, fd);
             if (!res.ok) {
@@ -522,41 +510,12 @@ function RegistrationForm({
             />
           </FormField>
           <FormField>
-            <Label required>Passport-size photo (max 2MB)</Label>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {/* Option A — pick from gallery (most reliable for iPhone HEIC) */}
-              <div className="rounded-md border border-brand-border bg-brand-surface p-3">
-                <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-brand-muted">
-                  Upload from gallery
-                </p>
-                <Input
-                  name="photo"
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
-                  className="file:mr-3 file:rounded file:border-0 file:bg-brand-bg file:px-3 file:py-1 file:text-sm file:font-medium"
-                />
-              </div>
-              {/* Option B — capture from camera. capture="environment" tells
-                  mobile browsers to launch the rear-facing camera directly
-                  instead of opening the file picker. Submit handler reads
-                  this input FIRST so if a fresh shot was taken it wins over
-                  any stale gallery selection. */}
-              <div className="rounded-md border border-brand-green/40 bg-brand-green/5 p-3">
-                <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-brand-green-dark">
-                  Or take a new photo
-                </p>
-                <Input
-                  name="photoCamera"
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
-                  capture="environment"
-                  className="file:mr-3 file:rounded file:border-0 file:bg-brand-green/15 file:px-3 file:py-1 file:text-sm file:font-medium file:text-brand-green-dark"
-                />
-              </div>
-            </div>
+            <Label required>Passport-size photo</Label>
+            <PhotoField />
             <FieldHint>
-              Use either option — both work. iPhone HEIC and large camera
-              photos are converted and resized automatically before upload.
+              Upload from gallery OR take a new photo. We resize and
+              compress automatically to ~150 KB before upload, so even
+              big iPhone HEIC photos work.
             </FieldHint>
           </FormField>
         </div>

@@ -1,16 +1,17 @@
 // Client-side image compression. Resizes large phone photos to a sane size
-// before upload. Runs entirely in the browser via Canvas — no server work.
+// before upload. Runs entirely in the browser via Canvas - no server work.
 //
-// Phone cameras produce 4-10 MB JPEGs (or HEIC on iPhone). Vercel functions
-// struggle to receive + upload those in time. Compressing to ~500 KB JPEG
-// before upload makes the round trip much faster AND survives the server's
-// strict 2 MB + jpeg/png/webp validator.
+// Goal: get every uploaded photo under ~150 KB while staying recognisable
+// as a passport-style headshot. 800px on the longest edge is plenty for
+// a 1.5"x2" thumbnail printed on an admit card or shown in the recruiter
+// dashboard. Aggressive compression also dodges Vercel function timeout +
+// the server's 2 MB cap with huge headroom.
 
-const MAX_DIM = 1280; // longest edge in pixels
-const JPEG_QUALITY = 0.82;
+const MAX_DIM = 800; // longest edge in pixels (was 1280)
+const TARGET_BYTES = 150 * 1024; // aim for <150 KB
+const Q_HIGH = 0.78;
+const Q_LOW = 0.6;
 
-// iPhone-camera default format. Most browsers can't decode it natively, so
-// we feed it through heic2any first.
 const HEIC_TYPES = new Set([
   "image/heic",
   "image/heif",
@@ -25,44 +26,85 @@ function isHeic(file: File): boolean {
 }
 
 async function convertHeicToJpegBlob(file: File): Promise<Blob> {
-  // Dynamic import — heic2any is browser-only and 80 KB gzipped. Loading
-  // it only when needed keeps the registration page snappy on Android.
+  // Dynamic import - heic2any is browser-only and ~80 KB gzipped. Only
+  // loaded when actually needed (Android users never pay the cost).
   const { default: heic2any } = await import("heic2any");
   const out = await heic2any({
     blob: file,
     toType: "image/jpeg",
-    quality: 0.9, // we'll re-compress after the resize
+    quality: 0.9, // re-compress after the resize below
   });
-  // heic2any returns Blob | Blob[] depending on whether the HEIC contains
-  // multiple frames. We only want the first frame.
   return Array.isArray(out) ? out[0] : out;
 }
 
-export async function compressImage(file: File): Promise<File> {
-  // Only compress images. Skip if non-image (shouldn't happen given accept=image/*).
-  if (!file.type.startsWith("image/") && !isHeic(file)) return file;
+/** Encode the canvas at the given quality, return Blob + bytes. */
+function encodeJpeg(
+  canvas: HTMLCanvasElement,
+  quality: number
+): Promise<Blob | null> {
+  return new Promise((resolve) =>
+    canvas.toBlob(resolve, "image/jpeg", quality)
+  );
+}
 
-  // HEIC must be converted FIRST — Canvas can't decode it.
+export type CompressResult = {
+  file: File;
+  beforeBytes: number;
+  afterBytes: number;
+  width: number;
+  height: number;
+  convertedFromHeic: boolean;
+};
+
+/**
+ * Compress + (if needed) convert HEIC to a small JPEG suitable for upload.
+ * Returns the new File plus before/after metadata so the UI can show the
+ * student "Photo ready - 132 KB" feedback.
+ */
+export async function compressImage(file: File): Promise<CompressResult> {
+  const beforeBytes = file.size;
+  // Skip uncommon non-image MIME (shouldn't happen given the accept attr).
+  if (!file.type.startsWith("image/") && !isHeic(file)) {
+    return {
+      file,
+      beforeBytes,
+      afterBytes: beforeBytes,
+      width: 0,
+      height: 0,
+      convertedFromHeic: false,
+    };
+  }
+
   let source: Blob = file;
+  let convertedFromHeic = false;
   if (isHeic(file)) {
     try {
       source = await convertHeicToJpegBlob(file);
+      convertedFromHeic = true;
     } catch {
-      // Conversion failed — fall through with the original. The server-side
-      // MIME validator will reject it with a clear error, which is better
-      // than uploading a 6 MB unreadable blob.
-      return file;
+      // Conversion failed - return original; server will reject with a
+      // clear MIME error.
+      return {
+        file,
+        beforeBytes,
+        afterBytes: beforeBytes,
+        width: 0,
+        height: 0,
+        convertedFromHeic: false,
+      };
     }
-  } else if (file.size <= 500 * 1024) {
-    // Already small enough — skip the canvas round-trip
-    return file;
   }
 
   const bitmap = await createImageBitmap(source).catch(() => null);
   if (!bitmap) {
-    // Browser couldn't decode even after HEIC conversion — let the server
-    // reject with a real error message.
-    return file;
+    return {
+      file,
+      beforeBytes,
+      afterBytes: beforeBytes,
+      width: 0,
+      height: 0,
+      convertedFromHeic,
+    };
   }
 
   // Compute target dimensions, preserving aspect ratio
@@ -71,25 +113,63 @@ export async function compressImage(file: File): Promise<File> {
   const targetW = Math.round(bitmap.width * scale);
   const targetH = Math.round(bitmap.height * scale);
 
-  // Render to canvas
   const canvas = document.createElement("canvas");
   canvas.width = targetW;
   canvas.height = targetH;
   const ctx = canvas.getContext("2d");
-  if (!ctx) return file;
+  if (!ctx) {
+    bitmap.close();
+    return {
+      file,
+      beforeBytes,
+      afterBytes: beforeBytes,
+      width: targetW,
+      height: targetH,
+      convertedFromHeic,
+    };
+  }
+  // White background in case the source had transparency (PNG) - JPEG
+  // doesn't support alpha and would otherwise come out black.
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, targetW, targetH);
   ctx.drawImage(bitmap, 0, 0, targetW, targetH);
   bitmap.close();
 
-  // Encode as JPEG
-  const blob = await new Promise<Blob | null>((resolve) =>
-    canvas.toBlob(resolve, "image/jpeg", JPEG_QUALITY)
-  );
-  if (!blob) return file;
+  // Two-pass quality: try Q_HIGH first; if still too big, drop to Q_LOW.
+  let blob = await encodeJpeg(canvas, Q_HIGH);
+  if (blob && blob.size > TARGET_BYTES) {
+    const retry = await encodeJpeg(canvas, Q_LOW);
+    if (retry && retry.size < blob.size) blob = retry;
+  }
+  if (!blob) {
+    return {
+      file,
+      beforeBytes,
+      afterBytes: beforeBytes,
+      width: targetW,
+      height: targetH,
+      convertedFromHeic,
+    };
+  }
 
-  // Wrap back as File so the upload pipeline treats it the same way
   const newName = file.name.replace(/\.(heic|heif|png|webp)$/i, ".jpg");
-  return new File([blob], newName, {
+  const newFile = new File([blob], newName, {
     type: "image/jpeg",
     lastModified: file.lastModified,
   });
+  return {
+    file: newFile,
+    beforeBytes,
+    afterBytes: blob.size,
+    width: targetW,
+    height: targetH,
+    convertedFromHeic,
+  };
+}
+
+/** Format bytes as a human-friendly string ("132 KB", "1.4 MB"). */
+export function formatBytes(n: number): string {
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${Math.round(n / 1024)} KB`;
+  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
 }
