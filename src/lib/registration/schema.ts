@@ -10,10 +10,11 @@ export const GENDER_OPTIONS = [
 
 export const COURSE_OPTIONS = [
   "BBA Aviation",
-  "BBA Airport Management",
   "MBA Aviation",
   "B.Sc Aviation",
-  "Diploma in Aviation",
+  "B-Tech",
+  "M-Tech",
+  "Aeronautical",
   "Other (specify)",
 ] as const;
 
