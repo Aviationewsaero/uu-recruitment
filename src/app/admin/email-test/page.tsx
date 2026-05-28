@@ -17,13 +17,22 @@ export default async function EmailTestPage() {
   const from = env.EMAIL_FROM;
   const replyTo = env.EMAIL_REPLY_TO;
   const apiKey = env.RESEND_API_KEY;
+  // After all sanitisers, what length does the key reduce to? Resend keys
+  // are exactly 36 chars (re_ + 33). Anything longer = newline / dup paste.
+  const apiKeyClean = apiKey.replace(/\s+/g, "");
+  const apiKeyLengthHint =
+    apiKeyClean.length === 36
+      ? "✅ correct"
+      : apiKeyClean.length === 0
+        ? "❌ missing"
+        : `⚠️ unusual (Resend keys are 36 chars — yours is ${apiKeyClean.length} after stripping whitespace)`;
   const apiKeyDisplay = apiKey
-    ? `${apiKey.slice(0, 6)}…${apiKey.slice(-4)}  (${apiKey.length} chars)`
+    ? `${apiKey.slice(0, 6)}…${apiKey.slice(-4)}  raw=${apiKey.length}  clean=${apiKeyClean.length}  ${apiKeyLengthHint}`
     : "❌ NOT SET";
   const appUrl = env.APP_URL;
 
   const modeOk = mode === "resend";
-  const apiOk = apiKey.length > 10;
+  const apiOk = apiKeyClean.length === 36;
   const fromOk = from.includes("@");
 
   return (

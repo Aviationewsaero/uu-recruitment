@@ -4,12 +4,16 @@ import { env } from "@/lib/env";
 import type { EmailPayload } from "./index";
 
 let _client: Resend | undefined;
+function cleanApiKey(raw: string): string {
+  // Strip ALL whitespace (incl. newlines + zero-widths). A 60-char "key"
+  // is usually a 36-char key with a newline + duplicate paste at the end.
+  // Then run the standard header sanitiser to catch smart-quote pastes.
+  const noWhitespace = raw.replace(/[\s​-‍﻿]+/g, "");
+  return sanitiseHeaderValue(noWhitespace);
+}
 function client() {
   if (!_client) {
-    // Sanitise the API key too - if someone pasted it from a Notes/Word/
-    // Slack message, smart quotes or em-dashes could've snuck in.
-    const cleanKey = sanitiseHeaderValue(env.RESEND_API_KEY);
-    _client = new Resend(cleanKey);
+    _client = new Resend(cleanApiKey(env.RESEND_API_KEY));
   }
   return _client;
 }
@@ -86,7 +90,7 @@ export async function send(payload: EmailPayload): Promise<{ id?: string }> {
   // emoji etc are fine there). Surfaces a clear error BEFORE the request
   // fires if anything has a high codepoint, rather than chasing undici's
   // opaque "index N value M" trace.
-  const apiKey = sanitiseHeaderValue(env.RESEND_API_KEY);
+  const apiKey = cleanApiKey(env.RESEND_API_KEY);
   for (const [name, value] of [
     ["RESEND_API_KEY (post-sanitise)", apiKey],
     ["from", from],
