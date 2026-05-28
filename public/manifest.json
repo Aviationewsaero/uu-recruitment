@@ -1,0 +1,17 @@
+{
+  "name": "EWS Aviation Recruitment 2026",
+  "short_name": "EWS Aviation",
+  "description": "Uttaranchal University Aviation Recruitment portal — register, get token, interview, decide.",
+  "start_url": "/register",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#1e3a8a",
+  "theme_color": "#1e3a8a",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "any",
+      "type": "image/x-icon"
+    }
+  ]
+}

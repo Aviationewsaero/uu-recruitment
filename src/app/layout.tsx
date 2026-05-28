@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Toaster } from "sonner";
 import "./globals.css";
 
@@ -7,6 +7,25 @@ export const metadata: Metadata = {
   description:
     "Official campus recruitment portal for aviation industry roles at Uttaranchal University. Powered by Elite World Services.",
   robots: { index: false, follow: false }, // private portal — keep out of search
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "EWS Aviation",
+  },
+  formatDetection: { telephone: false, email: false, address: false },
+};
+
+// Mobile: lock zoom, fit notch, theme the address bar.
+// Makes the site feel like a native app instead of a webpage.
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  minimumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
+  themeColor: "#1e3a8a",
 };
 
 export default function RootLayout({

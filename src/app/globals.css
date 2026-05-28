@@ -31,6 +31,64 @@ body {
   text-rendering: optimizeLegibility;
 }
 
+/* ─── Mobile: make it feel like a native app ────────────────────────── */
+
+html,
+body {
+  height: 100%;
+  /* No pull-to-refresh; no rubber-band bounce at top/bottom */
+  overscroll-behavior: none;
+  /* Kill the blue/grey flash on tap on Android/iOS */
+  -webkit-tap-highlight-color: transparent;
+  /* Disable the "long-press select" callout on iOS */
+  -webkit-touch-callout: none;
+}
+
+body {
+  /* Lock horizontal scroll — pages should never side-shift */
+  overflow-x: hidden;
+  /* Allow vertical scroll for long forms, but contain bounce */
+  overscroll-behavior-y: contain;
+}
+
+/* Disable double-tap zoom globally — taps register instantly */
+* {
+  touch-action: manipulation;
+}
+
+/* iOS Safari auto-zooms when focusing an input <16px. Force ≥16px. */
+input,
+textarea,
+select {
+  font-size: max(16px, 1rem);
+}
+
+/* Don't let UI chrome (buttons, badges) be selected on long-press */
+button,
+.no-select,
+[role="button"] {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* But DO allow text in form fields to be selected normally */
+input,
+textarea {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* Smooth momentum scrolling on iOS */
+.scroll-y {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Respect notch / safe areas (iPhone home indicator etc.) */
+body {
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
 /* Skip-to-content link — invisible until keyboard-focused */
 .skip-link {
   position: absolute;
