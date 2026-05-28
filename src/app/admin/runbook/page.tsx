@@ -2,6 +2,7 @@
 // /admin/runbook → File > Print → fits one A4 page.
 
 import { requireRole } from "@/lib/auth-user";
+import { PrintButton } from "./PrintButton";
 
 export const dynamic = "force-dynamic";
 
@@ -15,12 +16,7 @@ export default async function RunbookPage() {
         <h1 className="text-xl font-bold text-brand-text">
           Drive-day operator runbook
         </h1>
-        <button
-          onClick={() => window.print()}
-          className="rounded-md bg-brand-navy px-4 py-2 text-sm font-medium text-white hover:bg-brand-navy-dark"
-        >
-          🖨 Print this page
-        </button>
+        <PrintButton />
       </div>
 
       <article className="print-runbook border border-brand-border rounded-lg p-8 bg-white print:border-0 print:p-0">
