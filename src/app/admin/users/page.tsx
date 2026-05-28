@@ -1,5 +1,5 @@
 import { requireRole } from "@/lib/auth-user";
-import { listStaff } from "@/lib/users/service";
+import { listStaff, listRooms } from "@/lib/users/service";
 import { UsersList } from "./UsersList";
 import { CreateUserForm } from "./CreateUserForm";
 
@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 
 export default async function UsersPage() {
   const me = await requireRole("SUPER_ADMIN");
-  const staff = await listStaff();
+  const [staff, rooms] = await Promise.all([listStaff(), listRooms()]);
 
   return (
     <div className="p-8 space-y-8">
@@ -31,7 +31,11 @@ export default async function UsersPage() {
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-widest text-brand-muted">
           Existing staff ({staff.length})
         </h2>
-        <UsersList staff={staff} myId={me.userId} />
+        <p className="mb-3 text-xs text-brand-muted">
+          Recruiters need a <strong>room assigned</strong> before they can call
+          tokens — pick one from the dropdown in their row.
+        </p>
+        <UsersList staff={staff} rooms={rooms} myId={me.userId} />
       </section>
     </div>
   );

@@ -28,6 +28,12 @@ const activeSchema = z.object({
   active: z.coerce.boolean(),
 });
 
+const assignRoomSchema = z.object({
+  userId: z.string().uuid(),
+  // Empty string means "unassign"
+  roomId: z.string().uuid().or(z.literal("")),
+});
+
 type Result =
   | { ok: true; message?: string }
   | { ok: false; error: string };
@@ -124,6 +130,46 @@ export async function toggleStaffActiveAction(
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Update failed" };
+  }
+}
+
+export async function assignRoomAction(
+  _prev: unknown,
+  formData: FormData
+): Promise<Result> {
+  const me = await requireRole("SUPER_ADMIN");
+  const parsed = assignRoomSchema.safeParse({
+    userId: formData.get("userId"),
+    roomId: formData.get("roomId"),
+  });
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  }
+  // Only RECRUITER rows should be assignable — other roles don't own rooms.
+  const user = await prisma.user.findUnique({
+    where: { id: parsed.data.userId },
+    select: { role: true, email: true },
+  });
+  if (!user) return { ok: false, error: "User not found" };
+  if (user.role !== "RECRUITER") {
+    return { ok: false, error: "Only recruiters can be assigned a room" };
+  }
+  try {
+    const roomId = parsed.data.roomId || null;
+    await users.assignRoomToRecruiter(parsed.data.userId, roomId);
+    await audit(me.userId, "user.room_assigned", parsed.data.userId, {
+      roomId,
+      email: user.email,
+    });
+    revalidatePath("/admin/users");
+    revalidatePath("/recruiter");
+    revalidatePath("/display");
+    return {
+      ok: true,
+      message: roomId ? "Room assigned" : "Room unassigned",
+    };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Assign failed" };
   }
 }
 

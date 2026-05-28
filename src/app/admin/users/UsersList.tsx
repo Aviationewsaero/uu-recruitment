@@ -9,6 +9,7 @@ import {
   resetStaffPasswordAction,
   toggleStaffActiveAction,
   deleteStaffAction,
+  assignRoomAction,
 } from "@/lib/users/actions";
 
 type Staff = {
@@ -19,6 +20,16 @@ type Staff = {
   active: boolean;
   hasPassword: boolean;
   createdAt: Date;
+  assignedRoomId: string | null;
+  assignedRoomLabel: string | null;
+};
+
+type Room = {
+  id: string;
+  roomNumber: string;
+  displayName: string;
+  recruiterId: string | null;
+  recruiterName: string | null;
 };
 
 const ROLE_STYLES: Record<string, string> = {
@@ -28,7 +39,15 @@ const ROLE_STYLES: Record<string, string> = {
   EMAIL_MANAGER: "bg-purple-100 text-purple-700",
 };
 
-export function UsersList({ staff, myId }: { staff: Staff[]; myId: string }) {
+export function UsersList({
+  staff,
+  rooms,
+  myId,
+}: {
+  staff: Staff[];
+  rooms: Room[];
+  myId: string;
+}) {
   const [resettingId, setResettingId] = useState<string | null>(null);
   const [newPassword, setNewPassword] = useState("");
   const [pending, start] = useTransition();
@@ -61,6 +80,7 @@ export function UsersList({ staff, myId }: { staff: Staff[]; myId: string }) {
             <th className="px-4 py-3">Name</th>
             <th className="px-4 py-3">Email (login)</th>
             <th className="px-4 py-3">Role</th>
+            <th className="px-4 py-3">Room</th>
             <th className="px-4 py-3">Status</th>
             <th className="px-4 py-3 text-right">Actions</th>
           </tr>
@@ -78,6 +98,37 @@ export function UsersList({ staff, myId }: { staff: Staff[]; myId: string }) {
                   <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${ROLE_STYLES[u.role] ?? "bg-brand-bg"}`}>
                     {u.role.replace("_", " ").toLowerCase()}
                   </span>
+                </td>
+                <td className="px-4 py-3 text-xs">
+                  {u.role === "RECRUITER" ? (
+                    <select
+                      className="rounded border border-brand-border bg-white px-2 py-1 text-xs"
+                      value={u.assignedRoomId ?? ""}
+                      disabled={pending}
+                      onChange={(e) =>
+                        runAction(
+                          assignRoomAction,
+                          { userId: u.id, roomId: e.target.value },
+                          e.target.value ? "Room assigned" : "Room cleared"
+                        )
+                      }
+                    >
+                      <option value="">— no room —</option>
+                      {rooms
+                        .filter(
+                          (r) =>
+                            r.recruiterId === null ||
+                            r.recruiterId === u.id
+                        )
+                        .map((r) => (
+                          <option key={r.id} value={r.id}>
+                            {r.roomNumber} · {r.displayName}
+                          </option>
+                        ))}
+                    </select>
+                  ) : (
+                    <span className="text-brand-muted">—</span>
+                  )}
                 </td>
                 <td className="px-4 py-3 text-xs">
                   {u.active ? (
@@ -172,7 +223,7 @@ export function UsersList({ staff, myId }: { staff: Staff[]; myId: string }) {
           })}
           {staff.length === 0 && (
             <tr>
-              <td colSpan={5} className="px-4 py-8 text-center text-brand-muted">
+              <td colSpan={6} className="px-4 py-8 text-center text-brand-muted">
                 No staff yet. Add one above to get started.
               </td>
             </tr>

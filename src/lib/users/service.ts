@@ -12,21 +12,99 @@ export type StaffSummary = {
   active: boolean;
   hasPassword: boolean;
   createdAt: Date;
+  // Only meaningful for RECRUITER rows — id+number of their assigned room,
+  // null when nothing is wired up. Other roles always have null here.
+  assignedRoomId: string | null;
+  assignedRoomLabel: string | null;
+};
+
+export type RoomSummary = {
+  id: string;
+  roomNumber: string;
+  displayName: string;
+  recruiterId: string | null;
+  recruiterName: string | null;
 };
 
 export async function listStaff(): Promise<StaffSummary[]> {
-  const rows = await prisma.user.findMany({
-    orderBy: [{ active: "desc" }, { role: "asc" }, { fullName: "asc" }],
+  const [users, rooms] = await Promise.all([
+    prisma.user.findMany({
+      orderBy: [{ active: "desc" }, { role: "asc" }, { fullName: "asc" }],
+    }),
+    prisma.room.findMany({
+      select: {
+        id: true,
+        roomNumber: true,
+        displayName: true,
+        recruiterId: true,
+      },
+    }),
+  ]);
+  const roomByRecruiter = new Map(
+    rooms
+      .filter((r) => r.recruiterId)
+      .map((r) => [r.recruiterId as string, r])
+  );
+  return users.map((u) => {
+    const room = roomByRecruiter.get(u.id as string);
+    return {
+      id: u.id as string,
+      email: u.email,
+      fullName: u.fullName,
+      role: u.role,
+      active: u.active,
+      hasPassword: Boolean(u.passwordHash),
+      createdAt: u.createdAt,
+      assignedRoomId: room?.id ?? null,
+      assignedRoomLabel: room
+        ? `${room.roomNumber} · ${room.displayName}`
+        : null,
+    };
   });
-  return rows.map((u) => ({
-    id: u.id as string,
-    email: u.email,
-    fullName: u.fullName,
-    role: u.role,
-    active: u.active,
-    hasPassword: Boolean(u.passwordHash),
-    createdAt: u.createdAt,
+}
+
+export async function listRooms(): Promise<RoomSummary[]> {
+  const rooms = await prisma.room.findMany({
+    orderBy: { roomNumber: "asc" },
+    include: { recruiter: { select: { fullName: true } } },
+  });
+  return rooms.map((r) => ({
+    id: r.id as string,
+    roomNumber: r.roomNumber,
+    displayName: r.displayName,
+    recruiterId: (r.recruiterId as string | null) ?? null,
+    recruiterName: r.recruiter?.fullName ?? null,
   }));
+}
+
+/**
+ * Assign (or clear) the room for a recruiter. A recruiter has at most
+ * one room and a room has at most one recruiter, so this is a two-step
+ * transaction:
+ *   1. Clear any room currently pointing at this user.
+ *   2. Point the chosen room at the user (or leave cleared).
+ */
+export async function assignRoomToRecruiter(
+  userId: string,
+  roomId: string | null
+): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await prisma.$transaction(async (txRaw: any) => {
+    const tx = txRaw as typeof prisma;
+    // Step 1: unlink any existing room from this recruiter.
+    await tx.room.updateMany({
+      where: { recruiterId: userId },
+      data: { recruiterId: null },
+    });
+    if (!roomId) return;
+    // Step 2: assign the new room. If that room was previously linked to
+    // someone else, this overwrites — same as the desk-operator runbook
+    // says ("Super admin reassigns via /admin/users").
+    await tx.room.update({
+      where: { id: roomId },
+      data: { recruiterId: userId },
+    });
+  });
 }
 
 export async function createStaff(input: {
