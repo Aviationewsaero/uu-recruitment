@@ -1,4 +1,4 @@
-// Email abstraction — console (dev) vs Resend (prod).
+// Email abstraction - console (dev) vs Resend (prod).
 // Both log to the EmailLog table for an audit trail.
 
 import { env } from "@/lib/env";

@@ -1,4 +1,4 @@
-// Branded HTML email templates. Server-rendered strings — no React Email dep
+// Branded HTML email templates. Server-rendered strings - no React Email dep
 // to keep the bundle small. Aviation navy header + green accent bar.
 
 import { env } from "@/lib/env";
@@ -52,13 +52,13 @@ export function registrationConfirmation(args: {
 }) {
   const { fullName, registrationId, tokenNumber, admitCardUrl } = args;
   return {
-    subject: `✈️ Registration confirmed — Token #${tokenNumber} · UU Aviation Recruitment`,
+    subject: `✈️ Registration confirmed - Token #${tokenNumber} · UU Aviation Recruitment`,
     html: shell({
       title: "Registration Confirmed",
       preview: `Your token is #${tokenNumber}. Download your admit card.`,
       bodyHtml: `
         <p>Hello <strong>${escape(fullName)}</strong>,</p>
-        <p>Your registration for the Uttaranchal University Aviation Recruitment Drive is confirmed. Save this email — you'll need your token number on drive day.</p>
+        <p>Your registration for the Uttaranchal University Aviation Recruitment Drive is confirmed. Save this email - you'll need your token number on drive day.</p>
         <div class="card">
           <div class="label">Your token number</div>
           <div class="token">#${tokenNumber}</div>
@@ -67,7 +67,7 @@ export function registrationConfirmation(args: {
         </div>
         <p><strong>What's next:</strong></p>
         <ul>
-          <li>Download your digital admit card below — print it or save to your phone</li>
+          <li>Download your digital admit card below - print it or save to your phone</li>
           <li>Arrive at the venue 30 minutes before your token is called</li>
           <li>Watch the live display board for your token number</li>
         </ul>
@@ -87,10 +87,10 @@ type DecisionArgs = { fullName: string; tokenNumber: number; registrationId: str
 
 export function selectedEmail({ fullName, registrationId }: DecisionArgs) {
   return {
-    subject: "🎉 Congratulations — You're selected (UU Aviation Recruitment)",
+    subject: "🎉 Congratulations - You're selected (UU Aviation Recruitment)",
     html: shell({
       title: "You're selected!",
-      preview: "Welcome aboard — next steps inside.",
+      preview: "Welcome aboard - next steps inside.",
       bodyHtml: `
         <p>Dear <strong>${escape(fullName)}</strong>,</p>
         <p>We are delighted to inform you that you have been <strong style="color:#22c55e;">SELECTED</strong> from the Uttaranchal University Aviation Recruitment Drive.</p>
@@ -101,10 +101,10 @@ export function selectedEmail({ fullName, registrationId }: DecisionArgs) {
         <p><strong>What happens next:</strong></p>
         <ul>
           <li>Our HR team will reach out within 3 working days with your offer letter</li>
-          <li>Keep this email for your records — quote your reference ID in all correspondence</li>
+          <li>Keep this email for your records - quote your reference ID in all correspondence</li>
           <li>For urgent questions: <a href="mailto:aviation@ews.aero">aviation@ews.aero</a></li>
         </ul>
-        <p>Once again — welcome to Elite World Services. We're excited to have you on board.</p>
+        <p>Once again - welcome to Elite World Services. We're excited to have you on board.</p>
       `,
     }),
   };
@@ -112,7 +112,7 @@ export function selectedEmail({ fullName, registrationId }: DecisionArgs) {
 
 export function shortlistedEmail({ fullName, registrationId }: DecisionArgs) {
   return {
-    subject: "📋 You're shortlisted — UU Aviation Recruitment",
+    subject: "📋 You're shortlisted - UU Aviation Recruitment",
     html: shell({
       title: "You're shortlisted",
       preview: "Final decision in 5 working days.",
@@ -132,10 +132,10 @@ export function shortlistedEmail({ fullName, registrationId }: DecisionArgs) {
 
 export function holdEmail({ fullName, registrationId }: DecisionArgs) {
   return {
-    subject: "Your interview status — on hold (UU Aviation Recruitment)",
+    subject: "Your interview status - on hold (UU Aviation Recruitment)",
     html: shell({
       title: "On hold",
-      preview: "Decision pending review — we'll update you soon.",
+      preview: "Decision pending review - we'll update you soon.",
       bodyHtml: `
         <p>Dear <strong>${escape(fullName)}</strong>,</p>
         <p>Thank you for attending the recruitment drive. Your candidature is currently <strong>on hold</strong> pending further review by our hiring team.</p>
@@ -152,7 +152,7 @@ export function holdEmail({ fullName, registrationId }: DecisionArgs) {
 
 export function reInterviewEmail({ fullName, registrationId }: DecisionArgs) {
   return {
-    subject: "Please come back for a second interview — UU Aviation",
+    subject: "Please come back for a second interview - UU Aviation",
     html: shell({
       title: "Second interview requested",
       preview: "We'd like to speak with you again.",
@@ -172,19 +172,19 @@ export function reInterviewEmail({ fullName, registrationId }: DecisionArgs) {
 
 export function rejectedEmail({ fullName, registrationId }: DecisionArgs) {
   return {
-    subject: "Thank you for participating — UU Aviation Recruitment",
+    subject: "Thank you for participating - UU Aviation Recruitment",
     html: shell({
       title: "Thank you for your time",
       preview: "We won't be moving forward this time.",
       bodyHtml: `
         <p>Dear <strong>${escape(fullName)}</strong>,</p>
         <p>Thank you for attending the recruitment drive and for the time you spent with our team.</p>
-        <p>After careful consideration, we will not be moving forward with your application at this time. This decision in no way reflects on your ability — the competition was strong and we had limited positions to fill.</p>
+        <p>After careful consideration, we will not be moving forward with your application at this time. This decision in no way reflects on your ability - the competition was strong and we had limited positions to fill.</p>
         <div class="card">
           <div class="label">Reference</div>
           <div class="value">${registrationId}</div>
         </div>
-        <p>We genuinely wish you the very best in your career. Please do consider us for future opportunities — we run multiple drives a year.</p>
+        <p>We genuinely wish you the very best in your career. Please do consider us for future opportunities - we run multiple drives a year.</p>
       `,
     }),
   };

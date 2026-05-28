@@ -1,4 +1,4 @@
-// Console email "sender" — for local dev. Prints a clean summary.
+// Console email "sender" - for local dev. Prints a clean summary.
 import type { EmailPayload } from "./index";
 
 export async function send(payload: EmailPayload): Promise<{ id?: string }> {

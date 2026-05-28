@@ -16,12 +16,12 @@ export async function sendTestEmailAction(to: string) {
     };
   }
 
-  // Go through the SAME pipeline students hit — this proves whether the
+  // Go through the SAME pipeline students hit - this proves whether the
   // app-level email layer is healthy, not just whether Resend's API works.
   const r = await sendEmail(
     {
       to,
-      subject: "EWS Aviation — diagnostic test email",
+      subject: "EWS Aviation - diagnostic test email",
       html: `
         <div style="font-family: -apple-system, system-ui, sans-serif; max-width: 560px; padding: 24px;">
           <h2 style="color: #1e3a8a; margin: 0 0 12px;">Test email from /admin/email-test</h2>

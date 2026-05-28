@@ -1,4 +1,4 @@
-// Resend email sender — prod.
+// Resend email sender - prod.
 import { Resend } from "resend";
 import { env } from "@/lib/env";
 import type { EmailPayload } from "./index";
@@ -9,13 +9,56 @@ function client() {
   return _client;
 }
 
+// Resend's HTTP layer (undici) enforces ByteString (chars 0-255) on header
+// fields including subject and from. A stray em-dash (U+2014) or smart quote
+// crashes the send with "Cannot convert argument to a ByteString…". Common
+// offenders: em-dash, en-dash, smart quotes, ellipsis, accented chars.
+//
+// Defensive sanitiser: replace the known typographic chars with ASCII
+// equivalents, then strip anything else above 255 as a backstop. We keep
+// the HTML body untouched - that goes as JSON, not headers, and can carry
+// any UTF-8 freely.
+const ASCII_REPLACEMENTS: Record<string, string> = {
+  "—": "-", // em dash
+  "–": "-", // en dash
+  "‘": "'", // left single quote
+  "’": "'", // right single quote
+  "“": '"', // left double quote
+  "”": '"', // right double quote
+  "…": "...", // horizontal ellipsis
+  " ": " ", // non-breaking space
+  " ": " ", // narrow no-break space
+  "​": "", // zero-width space
+  "‌": "", // zero-width non-joiner
+  "‍": "", // zero-width joiner
+  "﻿": "", // zero-width no-break space / BOM
+};
+
+function sanitiseHeaderValue(s: string | undefined): string {
+  if (!s) return "";
+  let out = s;
+  for (const [from, to] of Object.entries(ASCII_REPLACEMENTS)) {
+    out = out.split(from).join(to);
+  }
+  // Strip any remaining char > 0xFF (e.g. emoji) as a backstop. They never
+  // belong in From/Subject for deliverability anyway.
+  out = Array.from(out)
+    .filter((ch) => ch.codePointAt(0)! <= 0xff)
+    .join("");
+  return out.trim();
+}
+
 export async function send(payload: EmailPayload): Promise<{ id?: string }> {
+  const from = sanitiseHeaderValue(env.EMAIL_FROM);
+  const replyTo = sanitiseHeaderValue(env.EMAIL_REPLY_TO);
+  const subject = sanitiseHeaderValue(payload.subject);
+
   const { data, error } = await client().emails.send({
-    from: env.EMAIL_FROM,
+    from,
     to: payload.to,
-    replyTo: env.EMAIL_REPLY_TO,
-    subject: payload.subject,
-    html: payload.html,
+    replyTo,
+    subject,
+    html: payload.html, // body stays UTF-8 - JSON-encoded, no ByteString limit
     text: payload.text,
   });
   if (error) throw new Error(error.message);
