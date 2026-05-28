@@ -281,11 +281,26 @@ function RegistrationForm({
                   '[name="resume"]'
                 ) as HTMLInputElement | null
               )?.files?.[0];
-              let photo = (
+              // Two photo inputs: gallery upload + camera capture. Prefer
+              // the camera shot if both were filled (student took a new one
+              // after picking from gallery), otherwise fall back to gallery.
+              const cameraPhoto = (
+                fileForm.querySelector(
+                  '[name="photoCamera"]'
+                ) as HTMLInputElement | null
+              )?.files?.[0];
+              const galleryPhoto = (
                 fileForm.querySelector(
                   '[name="photo"]'
                 ) as HTMLInputElement | null
               )?.files?.[0];
+              let photo = cameraPhoto ?? galleryPhoto;
+              if (!photo) {
+                setSubmitError("Please upload OR take a passport-size photo.");
+                toast.error("Photo is required");
+                setUploading(false);
+                return;
+              }
               // Compress phone-camera photos so we don't hit Vercel timeouts
               if (photo) {
                 try {
@@ -508,21 +523,40 @@ function RegistrationForm({
           </FormField>
           <FormField>
             <Label required>Passport-size photo (max 2MB)</Label>
-            <Input
-              name="photo"
-              type="file"
-              // Explicit MIME list (no image/* wildcard) so iOS Safari skips
-              // the "Take Photo" option and goes straight to Photo Library.
-              // HEIC/HEIF stay in the list because that's what older iPhone
-              // gallery photos are saved as — we convert them client-side.
-              accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.heic,.heif"
-              required
-              className="file:mr-3 file:rounded file:border-0 file:bg-brand-bg file:px-3 file:py-1 file:text-sm file:font-medium"
-            />
+            <div className="grid gap-3 sm:grid-cols-2">
+              {/* Option A — pick from gallery (most reliable for iPhone HEIC) */}
+              <div className="rounded-md border border-brand-border bg-brand-surface p-3">
+                <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-brand-muted">
+                  Upload from gallery
+                </p>
+                <Input
+                  name="photo"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
+                  className="file:mr-3 file:rounded file:border-0 file:bg-brand-bg file:px-3 file:py-1 file:text-sm file:font-medium"
+                />
+              </div>
+              {/* Option B — capture from camera. capture="environment" tells
+                  mobile browsers to launch the rear-facing camera directly
+                  instead of opening the file picker. Submit handler reads
+                  this input FIRST so if a fresh shot was taken it wins over
+                  any stale gallery selection. */}
+              <div className="rounded-md border border-brand-green/40 bg-brand-green/5 p-3">
+                <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-brand-green-dark">
+                  Or take a new photo
+                </p>
+                <Input
+                  name="photoCamera"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
+                  capture="environment"
+                  className="file:mr-3 file:rounded file:border-0 file:bg-brand-green/15 file:px-3 file:py-1 file:text-sm file:font-medium file:text-brand-green-dark"
+                />
+              </div>
+            </div>
             <FieldHint>
-              Upload a saved passport-size photo from your phone gallery.
-              JPEG, PNG, WebP or iPhone HEIC all work — we resize and
-              convert automatically before submitting.
+              Use either option — both work. iPhone HEIC and large camera
+              photos are converted and resized automatically before upload.
             </FieldHint>
           </FormField>
         </div>
