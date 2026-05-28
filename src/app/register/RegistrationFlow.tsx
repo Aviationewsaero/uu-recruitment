@@ -511,17 +511,18 @@ function RegistrationForm({
             <Input
               name="photo"
               type="file"
-              // image/* lets iPhone users pick from gallery OR camera. The
-              // explicit heic/heif entries make sure iOS shows HEIC originals
-              // (our client-side compressor converts them to JPEG before upload).
-              accept="image/jpeg,image/png,image/webp,image/heic,image/heif,image/*"
+              // Explicit MIME list (no image/* wildcard) so iOS Safari skips
+              // the "Take Photo" option and goes straight to Photo Library.
+              // HEIC/HEIF stay in the list because that's what older iPhone
+              // gallery photos are saved as — we convert them client-side.
+              accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.heic,.heif"
               required
               className="file:mr-3 file:rounded file:border-0 file:bg-brand-bg file:px-3 file:py-1 file:text-sm file:font-medium"
             />
             <FieldHint>
-              JPEG / PNG / WebP / HEIC. iPhone photos are converted automatically.
-              For best results, pick from your gallery rather than taking a fresh
-              shot.
+              Upload a saved passport-size photo from your phone gallery.
+              JPEG, PNG, WebP or iPhone HEIC all work — we resize and
+              convert automatically before submitting.
             </FieldHint>
           </FormField>
         </div>
