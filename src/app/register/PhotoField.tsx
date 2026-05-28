@@ -6,9 +6,9 @@
 // student sees confirmation that their photo is ready BEFORE they tap
 // submit, instead of crossing their fingers and hoping it worked.
 //
-// The compressed File is held in component state and pushed into a
-// hidden <input name="photo"> via DataTransfer so the existing FormData
-// pipeline picks it up without changes.
+// The compressed File is bubbled to the parent form via onChange. We do
+// NOT use a hidden DOM input + DataTransfer because iOS Safari silently
+// rejects `input.files = ...` assignment, which would block submit.
 
 import { useEffect, useRef, useState } from "react";
 import { compressImage, formatBytes, type CompressResult } from "@/lib/image-compress";
@@ -22,17 +22,19 @@ type Status =
 const ACCEPT =
   "image/jpeg,image/png,image/webp,image/heic,image/heif";
 
-export function PhotoField() {
+export function PhotoField({
+  onChange,
+}: {
+  onChange: (file: File | null) => void;
+}) {
   const [status, setStatus] = useState<Status>({ kind: "idle" });
-  const hiddenInputRef = useRef<HTMLInputElement>(null);
 
-  // Whenever a fresh compressed File is ready, push it into the hidden
-  // input that the surrounding form serialises into FormData.
+  // Bubble the compressed File up to the parent form whenever it changes.
+  // Parent stores it in state and appends to FormData at submit time.
   useEffect(() => {
-    if (status.kind !== "ready" || !hiddenInputRef.current) return;
-    const dt = new DataTransfer();
-    dt.items.add(status.result.file);
-    hiddenInputRef.current.files = dt.files;
+    if (status.kind === "ready") onChange(status.result.file);
+    else onChange(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status]);
 
   // Clean up the previous preview URL when state changes
@@ -62,23 +64,10 @@ export function PhotoField() {
 
   function reset() {
     setStatus({ kind: "idle" });
-    if (hiddenInputRef.current) hiddenInputRef.current.value = "";
   }
 
   return (
     <div className="space-y-3">
-      {/* Hidden input that the surrounding form picks up via name="photo".
-          Required at submit time - the parent form's onSubmit checks for
-          a file here before firing the server action. */}
-      <input
-        ref={hiddenInputRef}
-        type="file"
-        name="photo"
-        accept={ACCEPT}
-        className="hidden"
-        tabIndex={-1}
-      />
-
       {status.kind === "idle" && (
         <div className="grid gap-3 sm:grid-cols-2">
           <PickerCard

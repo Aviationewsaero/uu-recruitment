@@ -249,6 +249,10 @@ function RegistrationForm({
   const [pending, start] = useTransition();
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  // PhotoField bubbles the compressed File up here. We avoid the
+  // DataTransfer + hidden-input trick because iOS Safari silently rejects
+  // it, blocking submit.
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
 
   const {
     register,
@@ -273,34 +277,29 @@ function RegistrationForm({
               if (v === undefined || v === null) continue;
               fd.set(k, v as string | Blob);
             }
-            // PhotoField now owns compression + has already written the
-            // compressed File into the hidden <input name="photo">. We
-            // just read both files out of the DOM and put them on the
-            // FormData payload.
-            const fileForm =
-              document.querySelector<HTMLFormElement>("#file-fields");
-            if (fileForm) {
-              const resume = (
-                fileForm.querySelector(
-                  '[name="resume"]'
-                ) as HTMLInputElement | null
-              )?.files?.[0];
-              const photo = (
-                fileForm.querySelector(
-                  '[name="photo"]'
-                ) as HTMLInputElement | null
-              )?.files?.[0];
-              if (!photo) {
-                setSubmitError(
-                  "Please pick or take a passport-size photo before submitting."
-                );
-                toast.error("Photo is required");
-                setUploading(false);
-                return;
-              }
-              if (resume) fd.set("resume", resume);
-              fd.set("photo", photo);
+            // Photo lives in React state (set by PhotoField via onChange).
+            // Resume is still a normal file input so we read it from DOM.
+            if (!photoFile) {
+              setSubmitError(
+                "Please pick or take a passport-size photo before submitting."
+              );
+              toast.error("Photo is required");
+              setUploading(false);
+              return;
             }
+            const resumeInput =
+              document.querySelector<HTMLInputElement>(
+                '#file-fields [name="resume"]'
+              );
+            const resume = resumeInput?.files?.[0];
+            if (!resume) {
+              setSubmitError("Please upload your resume (PDF or DOCX).");
+              toast.error("Resume is required");
+              setUploading(false);
+              return;
+            }
+            fd.set("resume", resume);
+            fd.set("photo", photoFile);
             const res = await submitRegistrationAction(email, fd);
             if (!res.ok) {
               setSubmitError(res.error);
@@ -511,7 +510,7 @@ function RegistrationForm({
           </FormField>
           <FormField>
             <Label required>Passport-size photo</Label>
-            <PhotoField />
+            <PhotoField onChange={setPhotoFile} />
             <FieldHint>
               Upload from gallery OR take a new photo. We resize and
               compress automatically to ~150 KB before upload, so even
