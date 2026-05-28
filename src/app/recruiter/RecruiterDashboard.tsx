@@ -13,19 +13,19 @@ type StudentSnapshot = {
   id: string;
   registrationId: string;
   fullName: string;
-  fatherName: string;
-  motherName: string;
+  fatherName: string | null;
+  motherName: string | null;
   email: string;
   phone: string;
   gender: string;
-  address: string;
+  address: string | null;
   course: string;
   semester: string;
   specialization: string | null;
   tenthPercent: string;
   twelfthPercent: string;
-  tenthState: string;
-  twelfthState: string;
+  tenthState: string | null;
+  twelfthState: string | null;
   graduationCgpa: string | null;
 };
 
@@ -215,18 +215,18 @@ export function RecruiterDashboard({
               <Detail label="Gender" value={currentToken.student.gender.replace("_", " ")} />
               <Detail label="Phone" value={currentToken.student.phone} />
               <Detail label="Email" value={currentToken.student.email} />
-              <Detail label="Father's name" value={currentToken.student.fatherName} />
-              <Detail label="Mother's name" value={currentToken.student.motherName} />
+              <Detail label="Father's name" value={currentToken.student.fatherName ?? "—"} />
+              <Detail label="Mother's name" value={currentToken.student.motherName ?? "—"} />
               <Detail
                 label="10th board state"
-                value={currentToken.student.tenthState}
+                value={currentToken.student.tenthState ?? "—"}
               />
               <Detail
                 label="12th board state"
-                value={currentToken.student.twelfthState}
+                value={currentToken.student.twelfthState ?? "—"}
               />
               <div className="col-span-2 sm:col-span-3">
-                <Detail label="Address" value={currentToken.student.address} />
+                <Detail label="Address" value={currentToken.student.address ?? "—"} />
               </div>
             </dl>
 

@@ -86,8 +86,8 @@ export default async function StudentDetailPage({ params }: PageProps) {
             <Detail label="Email" value={student.email} />
             <Detail label="Phone" value={student.phone} />
             <Detail label="Gender" value={student.gender} />
-            <Detail label="Father's name" value={student.fatherName} />
-            <Detail label="Mother's name" value={student.motherName} />
+            <Detail label="Father's name" value={student.fatherName ?? "—"} />
+            <Detail label="Mother's name" value={student.motherName ?? "—"} />
             <Detail label="Course" value={student.course} />
             <Detail label="Semester" value={student.semester} />
             <Detail label="Specialization" value={student.specialization ?? "—"} />
@@ -97,10 +97,10 @@ export default async function StudentDetailPage({ params }: PageProps) {
               label="Grad CGPA"
               value={student.graduationCgpa?.toString() ?? "—"}
             />
-            <Detail label="10th state" value={student.tenthState} />
-            <Detail label="12th state" value={student.twelfthState} />
+            <Detail label="10th state" value={student.tenthState ?? "—"} />
+            <Detail label="12th state" value={student.twelfthState ?? "—"} />
             <div className="col-span-2 sm:col-span-3">
-              <Detail label="Address" value={student.address} />
+              <Detail label="Address" value={student.address ?? "—"} />
             </div>
           </dl>
         </section>

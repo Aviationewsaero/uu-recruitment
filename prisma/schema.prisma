@@ -59,12 +59,12 @@ model Student {
   registrationId  String          @unique // human-readable, e.g. "UU-AV-2026-0001"
   // Identity
   fullName        String
-  fatherName      String
-  motherName      String
+  fatherName      String?
+  motherName      String?
   phone           String
-  email           String          @unique // email-locked at OTP verification
+  email           String          @unique // email-locked at registration
   gender          Gender
-  address         String
+  address         String?
   // Academics
   course          String
   customCourse    String?
@@ -72,8 +72,8 @@ model Student {
   specialization  String?
   tenthPercent    Decimal         @db.Decimal(5, 2)
   twelfthPercent  Decimal         @db.Decimal(5, 2)
-  tenthState      String
-  twelfthState    String
+  tenthState      String?
+  twelfthState    String?
   graduationCgpa  Decimal?        @db.Decimal(4, 2)
   // Documents (Supabase Storage paths)
   resumeUrl       String?
@@ -81,6 +81,9 @@ model Student {
   // Status
   status          InterviewStatus @default(PENDING)
   consentGiven    Boolean         @default(false)
+  // Per-student secret for the admit-card download URL — prevents anyone
+  // who knows a registrationId from downloading another student's PDF.
+  admitCardToken  String?
   // Relations
   token           Token?
   interviewLogs   InterviewLog[]

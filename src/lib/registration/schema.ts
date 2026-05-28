@@ -35,28 +35,32 @@ const percentRange = z.coerce
   .min(0, "Cannot be negative")
   .max(100, "Cannot exceed 100");
 
+// Form schema: minimum required for a productive interview. Anything else
+// the recruiter needs is on the resume. Optional fields = empty allowed.
 export const registrationFormSchema = z.object({
-  // Identity
+  // Identity — required
   fullName: z.string().trim().min(2, "Required").max(100),
-  fatherName: z.string().trim().min(2, "Required").max(100),
-  motherName: z.string().trim().min(2, "Required").max(100),
   phone: z
     .string()
     .trim()
     .regex(phoneRegex, "Enter a valid 10-digit Indian mobile number"),
   gender: z.enum(["MALE", "FEMALE", "OTHER", "PREFER_NOT_TO_SAY"]),
-  address: z.string().trim().min(10, "Please share a full address").max(500),
-  // Academic
+  // Identity — optional (recruiters can see on resume)
+  fatherName: z.string().trim().max(100).optional().or(z.literal("")),
+  motherName: z.string().trim().max(100).optional().or(z.literal("")),
+  address: z.string().trim().max(500).optional().or(z.literal("")),
+  // Academic — required
   course: z.string().trim().min(1, "Required"),
-  customCourse: z.string().trim().max(100).optional(),
   semester: z.string().trim().min(1, "Required"),
-  specialization: z.string().trim().max(100).optional(),
   tenthPercent: percentRange,
   twelfthPercent: percentRange,
-  tenthState: z.string().trim().min(2, "Required").max(100),
-  twelfthState: z.string().trim().min(2, "Required").max(100),
-  graduationCgpa: z.coerce.number().min(0).max(10).optional(),
-  // Consent — coerce to true via refine so RHF can have `false` default
+  // Academic — optional
+  customCourse: z.string().trim().max(100).optional().or(z.literal("")),
+  specialization: z.string().trim().max(100).optional().or(z.literal("")),
+  tenthState: z.string().trim().max(100).optional().or(z.literal("")),
+  twelfthState: z.string().trim().max(100).optional().or(z.literal("")),
+  graduationCgpa: z.coerce.number().min(0).max(10).optional().or(z.literal("")),
+  // Consent — required
   consentGiven: z
     .boolean()
     .refine((v) => v === true, "You must agree before submitting"),

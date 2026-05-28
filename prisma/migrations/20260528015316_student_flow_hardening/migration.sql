@@ -1,0 +1,7 @@
+-- AlterTable
+ALTER TABLE "Student" ADD COLUMN     "admitCardToken" TEXT,
+ALTER COLUMN "fatherName" DROP NOT NULL,
+ALTER COLUMN "motherName" DROP NOT NULL,
+ALTER COLUMN "address" DROP NOT NULL,
+ALTER COLUMN "tenthState" DROP NOT NULL,
+ALTER COLUMN "twelfthState" DROP NOT NULL;

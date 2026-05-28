@@ -1,5 +1,6 @@
 "use server";
 
+import crypto from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { sendOtp as authSendOtp, verifyOtp as authVerifyOtp } from "@/lib/auth";
@@ -27,7 +28,7 @@ export async function requestOtpAction(_prev: unknown, formData: FormData) {
     }
     const email = parsed.data.email;
 
-    // Reject duplicate registration BEFORE OTP burn
+    // Reject duplicate registration up front — same check in both auth modes
     const existing = await prisma.student.findUnique({ where: { email } });
     if (existing) {
       const tok = await prisma.token.findUnique({
@@ -35,21 +36,26 @@ export async function requestOtpAction(_prev: unknown, formData: FormData) {
       });
       return {
         ok: false as const,
-        error: `This email is already registered (token #${tok?.tokenNumber ?? "—"}). Use a different email or contact the desk.`,
+        error: `This email is already registered (token #${tok?.tokenNumber ?? "—"}). Use a different email or visit the desk.`,
       };
+    }
+
+    // BYPASS: when STUDENT_AUTH=none, skip OTP entirely and let the flow
+    // jump straight to the form. Email is locked at this point.
+    if (env.STUDENT_AUTH === "none") {
+      return { ok: true as const, email, bypassed: true };
     }
 
     const result = await authSendOtp(email);
     if (!result.ok) return { ok: false as const, error: result.error };
-    return { ok: true as const, email };
+    return { ok: true as const, email, bypassed: false };
   } catch (e) {
-    // Surface actual error to logs (and user) so we can debug prod issues
     const msg = e instanceof Error ? `${e.name}: ${e.message}` : String(e);
     // eslint-disable-next-line no-console
     console.error("[requestOtpAction] failure:", msg, e);
     return {
       ok: false as const,
-      error: `Server error — please try again in a moment. (${msg.slice(0, 120)})`,
+      error: `Server error — please try again. (${msg.slice(0, 120)})`,
     };
   }
 }
@@ -143,30 +149,33 @@ export async function submitRegistrationAction(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await prisma.$transaction(async (txRaw: any) => {
       const tx = txRaw as typeof prisma;
+      // Per-student secret for the admit-card download URL
+      const admitCardToken = crypto.randomBytes(16).toString("base64url");
       const student = await tx.student.create({
         data: {
           registrationId: `PENDING-${Date.now()}`, // placeholder, updated below
           fullName: data.fullName,
-          fatherName: data.fatherName,
-          motherName: data.motherName,
+          fatherName: data.fatherName || null,
+          motherName: data.motherName || null,
           phone: data.phone,
           email,
           gender: data.gender,
-          address: data.address,
+          address: data.address || null,
           course:
             data.course === "Other (specify)"
-              ? (data.customCourse ?? "Other")
+              ? (data.customCourse || "Other")
               : data.course,
           customCourse:
-            data.course === "Other (specify)" ? data.customCourse : null,
+            data.course === "Other (specify)" ? (data.customCourse || null) : null,
           semester: data.semester,
-          specialization: data.specialization ?? null,
+          specialization: data.specialization || null,
           tenthPercent: data.tenthPercent,
           twelfthPercent: data.twelfthPercent,
-          tenthState: data.tenthState,
-          twelfthState: data.twelfthState,
-          graduationCgpa: data.graduationCgpa ?? null,
+          tenthState: data.tenthState || "—",
+          twelfthState: data.twelfthState || "—",
+          graduationCgpa: (data.graduationCgpa as number) || null,
           consentGiven: data.consentGiven,
+          admitCardToken,
         },
       });
       studentId = student.id as string;
@@ -216,7 +225,15 @@ export async function submitRegistrationAction(
 
   // 6. Confirmation email — log failures, never silent.
   // Don't roll back the registration if email fails — student has their token.
-  const admitCardUrl = `${env.APP_URL}/api/admit-card/${registrationId}`;
+  // Fetch the token-protected URL for the admit card (so email link works
+  // without requiring the student to log in).
+  const studentRow = await prisma.student.findUnique({
+    where: { id: studentId },
+    select: { admitCardToken: true },
+  });
+  const admitCardUrl =
+    `${env.APP_URL}/api/admit-card/${registrationId}` +
+    (studentRow?.admitCardToken ? `?t=${studentRow.admitCardToken}` : "");
   const tmpl = registrationConfirmation({
     fullName: data.fullName,
     registrationId,

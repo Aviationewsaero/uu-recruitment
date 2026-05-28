@@ -15,6 +15,9 @@ export const env = {
   AUTH_MODE: optional("APP_AUTH_MODE", "mock") as "mock" | "supabase",
   STORAGE_MODE: optional("APP_STORAGE_MODE", "local") as "local" | "supabase",
   EMAIL_MODE: optional("APP_EMAIL_MODE", "console") as "console" | "resend",
+  // Student-facing OTP. "none" = bypass OTP entirely (faster, recommended when
+  // SMTP is unreliable). "otp" = require email verification.
+  STUDENT_AUTH: optional("APP_STUDENT_AUTH", "none") as "none" | "otp",
 
   // Public app
   APP_URL: optional("NEXT_PUBLIC_APP_URL", "http://localhost:3001"),

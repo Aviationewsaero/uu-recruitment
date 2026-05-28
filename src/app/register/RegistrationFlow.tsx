@@ -33,16 +33,18 @@ type Step = "email" | "otp" | "form";
 export function RegistrationFlow() {
   const [step, setStep] = useState<Step>("email");
   const [email, setEmail] = useState("");
+  const [hasOtpStep, setHasOtpStep] = useState(true);
   const router = useRouter();
 
   return (
     <div className="rounded-xl border border-brand-border bg-brand-surface p-6 sm:p-8 shadow-sm">
-      <StepIndicator current={step} />
+      <StepIndicator current={step} skipOtp={!hasOtpStep} />
       {step === "email" && (
         <EmailStep
-          onSent={(e) => {
-            setEmail(e);
-            setStep("otp");
+          onProceed={(emailVal, bypassed) => {
+            setEmail(emailVal);
+            setHasOtpStep(!bypassed);
+            setStep(bypassed ? "form" : "otp");
           }}
         />
       )}
@@ -64,12 +66,13 @@ export function RegistrationFlow() {
 }
 
 // ---------- Step indicator ----------
-function StepIndicator({ current }: { current: Step }) {
-  const steps: { id: Step; label: string }[] = [
-    { id: "email", label: "Verify email" },
+function StepIndicator({ current, skipOtp }: { current: Step; skipOtp: boolean }) {
+  const allSteps: { id: Step; label: string }[] = [
+    { id: "email", label: "Your email" },
     { id: "otp", label: "Enter code" },
     { id: "form", label: "Your details" },
   ];
+  const steps = skipOtp ? allSteps.filter((s) => s.id !== "otp") : allSteps;
   const idx = steps.findIndex((s) => s.id === current);
   return (
     <ol className="mb-6 flex items-center gap-2 text-xs">
@@ -91,7 +94,9 @@ function StepIndicator({ current }: { current: Step }) {
             </span>
             <span
               className={
-                active || done ? "text-brand-text font-medium" : "text-brand-muted"
+                active || done
+                  ? "text-brand-text font-medium"
+                  : "text-brand-muted"
               }
             >
               {s.label}
@@ -107,7 +112,11 @@ function StepIndicator({ current }: { current: Step }) {
 }
 
 // ---------- Email step ----------
-function EmailStep({ onSent }: { onSent: (email: string) => void }) {
+function EmailStep({
+  onProceed,
+}: {
+  onProceed: (email: string, bypassed: boolean) => void;
+}) {
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -123,8 +132,13 @@ function EmailStep({ onSent }: { onSent: (email: string) => void }) {
             setError(res.error);
             return;
           }
-          toast.success("Verification code sent — check your inbox");
-          onSent(res.email);
+          if (res.bypassed) {
+            // No OTP step — straight to the form
+            onProceed(res.email, true);
+          } else {
+            toast.success("Verification code sent — check your inbox");
+            onProceed(res.email, false);
+          }
         });
       }}
     >
@@ -137,23 +151,25 @@ function EmailStep({ onSent }: { onSent: (email: string) => void }) {
           name="email"
           type="email"
           autoComplete="email"
+          inputMode="email"
           required
-          placeholder="you@uttaranchaluniversity.edu.in"
+          placeholder="you@example.com"
           disabled={pending}
         />
         <FieldHint>
-          You&apos;ll receive a 6-digit code. This email cannot be changed later.
+          We&apos;ll send your token + admit card here. This email cannot be
+          changed later.
         </FieldHint>
         <FieldError message={error ?? undefined} />
       </FormField>
       <Button type="submit" size="lg" className="mt-6 w-full" disabled={pending}>
-        {pending ? "Sending code…" : "Send verification code →"}
+        {pending ? "Loading…" : "Continue →"}
       </Button>
     </form>
   );
 }
 
-// ---------- OTP step ----------
+// ---------- OTP step (only used if STUDENT_AUTH=otp) ----------
 function OtpStep({
   email,
   onVerified,
@@ -210,9 +226,6 @@ function OtpStep({
           className="text-center text-2xl tracking-[0.5em] font-mono"
           disabled={pending}
         />
-        <FieldHint>
-          In dev mode the code is printed to the server console.
-        </FieldHint>
         <FieldError message={error ?? undefined} />
       </FormField>
       <Button type="submit" size="lg" className="mt-6 w-full" disabled={pending}>
@@ -232,6 +245,7 @@ function RegistrationForm({
 }) {
   const [pending, start] = useTransition();
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   const {
     register,
@@ -248,29 +262,38 @@ function RegistrationForm({
     <form
       onSubmit={handleSubmit((vals) => {
         setSubmitError(null);
+        setUploading(true);
         start(async () => {
-          const fd = new FormData();
-          for (const [k, v] of Object.entries(vals)) {
-            if (v === undefined || v === null) continue;
-            fd.set(k, v as string | Blob);
+          try {
+            const fd = new FormData();
+            for (const [k, v] of Object.entries(vals)) {
+              if (v === undefined || v === null) continue;
+              fd.set(k, v as string | Blob);
+            }
+            const fileForm = document.querySelector<HTMLFormElement>(
+              "#file-fields"
+            );
+            if (fileForm) {
+              const resume = (
+                fileForm.querySelector('[name="resume"]') as HTMLInputElement | null
+              )?.files?.[0];
+              const photo = (
+                fileForm.querySelector('[name="photo"]') as HTMLInputElement | null
+              )?.files?.[0];
+              if (resume) fd.set("resume", resume);
+              if (photo) fd.set("photo", photo);
+            }
+            const res = await submitRegistrationAction(email, fd);
+            if (!res.ok) {
+              setSubmitError(res.error);
+              toast.error("Could not submit — see error below");
+              return;
+            }
+            toast.success(`Registered! Token #${res.tokenNumber}`);
+            onSubmitted(res.registrationId);
+          } finally {
+            setUploading(false);
           }
-          const fileForm = document.querySelector<HTMLFormElement>(
-            "#file-fields"
-          );
-          if (fileForm) {
-            const resume = (fileForm.querySelector('[name="resume"]') as HTMLInputElement | null)?.files?.[0];
-            const photo = (fileForm.querySelector('[name="photo"]') as HTMLInputElement | null)?.files?.[0];
-            if (resume) fd.set("resume", resume);
-            if (photo) fd.set("photo", photo);
-          }
-          const res = await submitRegistrationAction(email, fd);
-          if (!res.ok) {
-            setSubmitError(res.error);
-            toast.error("Could not submit — see error below");
-            return;
-          }
-          toast.success(`Registered! Your token is #${res.tokenNumber}`);
-          onSubmitted(res.registrationId);
         });
       })}
       className="space-y-8"
@@ -280,34 +303,28 @@ function RegistrationForm({
         <span className="text-brand-muted">(email locked)</span>
       </p>
 
-      <FormSection title="Identity">
+      <FormSection title="About you">
         <FormRow cols={2}>
           <FormField>
             <Label required>Full name</Label>
-            <Input {...register("fullName")} placeholder="As per Aadhaar / ID" />
+            <Input
+              {...register("fullName")}
+              placeholder="As per ID"
+              autoComplete="name"
+            />
             <FieldError message={errors.fullName?.message} />
           </FormField>
           <FormField>
-            <Label required>Phone (10-digit)</Label>
+            <Label required>Phone</Label>
             <Input
               {...register("phone")}
               inputMode="numeric"
-              placeholder="9876543210"
+              pattern="[0-9]*"
+              placeholder="10-digit mobile"
               maxLength={10}
+              autoComplete="tel"
             />
             <FieldError message={errors.phone?.message} />
-          </FormField>
-        </FormRow>
-        <FormRow cols={2}>
-          <FormField>
-            <Label required>Father&apos;s name</Label>
-            <Input {...register("fatherName")} />
-            <FieldError message={errors.fatherName?.message} />
-          </FormField>
-          <FormField>
-            <Label required>Mother&apos;s name</Label>
-            <Input {...register("motherName")} />
-            <FieldError message={errors.motherName?.message} />
           </FormField>
         </FormRow>
         <FormRow cols={2}>
@@ -326,15 +343,31 @@ function RegistrationForm({
             <FieldError message={errors.gender?.message} />
           </FormField>
         </FormRow>
-        <FormField>
-          <Label required>Address</Label>
-          <Textarea
-            {...register("address")}
-            rows={3}
-            placeholder="Permanent address"
-          />
-          <FieldError message={errors.address?.message} />
-        </FormField>
+        <details className="rounded-md border border-brand-border p-3 text-sm">
+          <summary className="cursor-pointer text-brand-muted font-medium">
+            Add parent names + address (optional — on your resume anyway)
+          </summary>
+          <div className="mt-3 space-y-3">
+            <FormRow cols={2}>
+              <FormField>
+                <Label>Father&apos;s name</Label>
+                <Input {...register("fatherName")} />
+              </FormField>
+              <FormField>
+                <Label>Mother&apos;s name</Label>
+                <Input {...register("motherName")} />
+              </FormField>
+            </FormRow>
+            <FormField>
+              <Label>Address</Label>
+              <Textarea
+                {...register("address")}
+                rows={2}
+                placeholder="Permanent address"
+              />
+            </FormField>
+          </div>
+        </details>
       </FormSection>
 
       <FormSection title="Academics">
@@ -372,13 +405,8 @@ function RegistrationForm({
           <FormField>
             <Label required>Specify course name</Label>
             <Input {...register("customCourse")} />
-            <FieldError message={errors.customCourse?.message} />
           </FormField>
         )}
-        <FormField>
-          <Label>Specialization (optional)</Label>
-          <Input {...register("specialization")} />
-        </FormField>
         <FormRow cols={2}>
           <FormField>
             <Label required>10th %</Label>
@@ -388,17 +416,11 @@ function RegistrationForm({
               step="0.01"
               min={0}
               max={100}
-              placeholder="e.g. 82.5"
+              inputMode="decimal"
+              placeholder="82.5"
             />
             <FieldError message={errors.tenthPercent?.message} />
           </FormField>
-          <FormField>
-            <Label required>10th board state</Label>
-            <Input {...register("tenthState")} placeholder="e.g. Uttarakhand" />
-            <FieldError message={errors.tenthState?.message} />
-          </FormField>
-        </FormRow>
-        <FormRow cols={2}>
           <FormField>
             <Label required>12th %</Label>
             <Input
@@ -407,30 +429,53 @@ function RegistrationForm({
               step="0.01"
               min={0}
               max={100}
-              placeholder="e.g. 76.4"
+              inputMode="decimal"
+              placeholder="76.4"
             />
             <FieldError message={errors.twelfthPercent?.message} />
           </FormField>
-          <FormField>
-            <Label required>12th board state</Label>
-            <Input {...register("twelfthState")} placeholder="e.g. Uttarakhand" />
-            <FieldError message={errors.twelfthState?.message} />
-          </FormField>
         </FormRow>
-        <FormField>
-          <Label>Graduation CGPA (optional)</Label>
-          <Input
-            {...register("graduationCgpa")}
-            type="number"
-            step="0.01"
-            min={0}
-            max={10}
-            placeholder="e.g. 7.8"
-          />
-        </FormField>
+        <details className="rounded-md border border-brand-border p-3 text-sm">
+          <summary className="cursor-pointer text-brand-muted font-medium">
+            Add specialization, CGPA, board state (optional)
+          </summary>
+          <div className="mt-3 space-y-3">
+            <FormField>
+              <Label>Specialization</Label>
+              <Input {...register("specialization")} />
+            </FormField>
+            <FormRow cols={2}>
+              <FormField>
+                <Label>Graduation CGPA</Label>
+                <Input
+                  {...register("graduationCgpa")}
+                  type="number"
+                  step="0.01"
+                  min={0}
+                  max={10}
+                  placeholder="7.8"
+                />
+              </FormField>
+              <FormField>
+                <Label>10th board state</Label>
+                <Input
+                  {...register("tenthState")}
+                  placeholder="Uttarakhand"
+                />
+              </FormField>
+            </FormRow>
+            <FormField>
+              <Label>12th board state</Label>
+              <Input
+                {...register("twelfthState")}
+                placeholder="Uttarakhand"
+              />
+            </FormField>
+          </div>
+        </details>
       </FormSection>
 
-      <FormSection title="Documents">
+      <FormSection title="Upload documents">
         <div id="file-fields" className="space-y-4">
           <FormField>
             <Label required>Resume (PDF or DOCX, max 5MB)</Label>
@@ -443,14 +488,18 @@ function RegistrationForm({
             />
           </FormField>
           <FormField>
-            <Label required>Passport-size photo (JPEG/PNG/WebP, max 2MB)</Label>
+            <Label required>Passport-size photo (max 2MB)</Label>
             <Input
               name="photo"
               type="file"
               accept="image/jpeg,image/png,image/webp"
+              capture="environment"
               required
               className="file:mr-3 file:rounded file:border-0 file:bg-brand-bg file:px-3 file:py-1 file:text-sm file:font-medium"
             />
+            <FieldHint>
+              On mobile, you can take a photo directly with your camera.
+            </FieldHint>
           </FormField>
         </div>
       </FormSection>
@@ -463,10 +512,9 @@ function RegistrationForm({
             className="mt-1 h-4 w-4 rounded border-brand-border accent-brand-green"
           />
           <span className="text-sm text-brand-text">
-            I consent to Elite World Services collecting, storing, and processing
-            my data for the purpose of this recruitment drive. I understand my
-            data is held for 18 months and I can request deletion at any time by
-            emailing aviation@ews.aero.
+            I consent to Elite World Services collecting and processing my
+            data for this recruitment drive. Data is held for 18 months and I
+            can email aviation@ews.aero to request deletion anytime.
           </span>
         </label>
         <FieldError message={errors.consentGiven?.message} />
@@ -479,8 +527,18 @@ function RegistrationForm({
       )}
 
       <Button type="submit" size="lg" className="w-full" disabled={pending}>
-        {pending ? "Submitting…" : "Submit registration"}
+        {uploading
+          ? "Uploading + generating your token…"
+          : pending
+            ? "Submitting…"
+            : "Submit registration"}
       </Button>
+      {pending && (
+        <p className="text-center text-xs text-brand-muted">
+          Hang on — this can take 10–15 seconds on slow connections. Don&apos;t
+          close this tab.
+        </p>
+      )}
     </form>
   );
 }

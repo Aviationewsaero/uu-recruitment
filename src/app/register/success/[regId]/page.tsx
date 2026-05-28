@@ -79,7 +79,10 @@ export default async function SuccessPage({ params }: PageProps) {
             </ul>
             <div className="mt-6 flex flex-wrap gap-3">
               <a
-                href={`/api/admit-card/${student.registrationId}`}
+                href={
+                  `/api/admit-card/${student.registrationId}` +
+                  (student.admitCardToken ? `?t=${student.admitCardToken}` : "")
+                }
                 className="rounded-md bg-brand-green px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-green-dark"
               >
                 Download admit card (PDF) →
