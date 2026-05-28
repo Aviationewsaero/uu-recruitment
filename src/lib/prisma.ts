@@ -19,7 +19,11 @@ function makeClient() {
   const adapter = new PrismaPg({
     connectionString,
     max: 1,
-    idleTimeoutMillis: 5_000,
+    // Keep idle sockets alive across requests on the same warm Lambda.
+    // 5s was too short — every request paid a fresh TLS handshake to
+    // Supabase (~150-300ms). 30s lets the socket survive between
+    // back-to-back nav/clicks while still releasing during quiet periods.
+    idleTimeoutMillis: 30_000,
     connectionTimeoutMillis: 10_000,
   });
   return new PrismaClient({

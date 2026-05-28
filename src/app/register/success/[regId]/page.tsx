@@ -1,18 +1,50 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import crypto from "node:crypto";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/auth-user";
 
 export const dynamic = "force-dynamic";
 
-type PageProps = { params: Promise<{ regId: string }> };
+type PageProps = {
+  params: Promise<{ regId: string }>;
+  searchParams: Promise<{ t?: string }>;
+};
 
-export default async function SuccessPage({ params }: PageProps) {
+// Constant-time compare to avoid timing side-channels when a no-token URL
+// is brute-forced.
+function constantTimeEqual(a: string, b: string): boolean {
+  const ab = Buffer.from(a);
+  const bb = Buffer.from(b);
+  if (ab.length !== bb.length) return false;
+  return crypto.timingSafeEqual(ab, bb);
+}
+
+export default async function SuccessPage({ params, searchParams }: PageProps) {
   const { regId } = await params;
+  const { t } = await searchParams;
+  const provided = t ?? "";
+
   const student = await prisma.student.findUnique({
     where: { registrationId: regId },
     include: { token: true },
   });
   if (!student || !student.token) notFound();
+
+  // H2: gate the page on the per-student admit-card token. Without it,
+  // /register/success/UU-AV-2026-0001 leaked full PII to anyone who could
+  // guess a reg ID. Admins (logged-in staff) bypass for support purposes.
+  const me = await getCurrentUser();
+  const isStaff = !!me;
+  const tokenOk =
+    !!student.admitCardToken &&
+    !!provided &&
+    constantTimeEqual(provided, student.admitCardToken);
+
+  if (!isStaff && !tokenOk) {
+    // 404 (not 401/403) so attackers can't enumerate which reg IDs exist.
+    notFound();
+  }
 
   return (
     <main className="flex-1 py-12">

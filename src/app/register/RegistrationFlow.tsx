@@ -59,7 +59,9 @@ export function RegistrationFlow() {
       {step === "form" && (
         <RegistrationForm
           email={email}
-          onSubmitted={(regId) => router.push(`/register/success/${regId}`)}
+          onSubmitted={(regId, t) =>
+            router.push(`/register/success/${regId}?t=${t}`)
+          }
         />
       )}
     </div>
@@ -242,7 +244,7 @@ function RegistrationForm({
   onSubmitted,
 }: {
   email: string;
-  onSubmitted: (regId: string) => void;
+  onSubmitted: (regId: string, admitCardToken: string) => void;
 }) {
   const [pending, start] = useTransition();
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -303,7 +305,7 @@ function RegistrationForm({
               return;
             }
             toast.success(`Registered! Token #${res.tokenNumber}`);
-            onSubmitted(res.registrationId);
+            onSubmitted(res.registrationId, res.admitCardToken);
           } catch (e) {
             const msg = e instanceof Error ? e.message : "Unknown error";
             setSubmitError(`Submit failed: ${msg}`);

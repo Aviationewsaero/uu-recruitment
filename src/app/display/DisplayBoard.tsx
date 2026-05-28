@@ -25,9 +25,11 @@ export function DisplayBoard({
 }) {
   const router = useRouter();
 
-  // Poll for updates every 3 seconds (mock mode). In prod swap to Supabase Realtime.
+  // Poll every 5s. 3s was hammering the DB pool during the drive (one
+  // request per TV × every 3s = 20 req/min just for the board). 5s is
+  // still visually instant for a token board.
   useEffect(() => {
-    const id = setInterval(() => router.refresh(), 3000);
+    const id = setInterval(() => router.refresh(), 5000);
     return () => clearInterval(id);
   }, [router]);
 

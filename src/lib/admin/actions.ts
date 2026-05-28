@@ -6,6 +6,21 @@ import { prisma } from "@/lib/prisma";
 import { sendOtp, verifyOtp } from "@/lib/auth";
 import { verifyPassword } from "@/lib/auth/password";
 import { setSessionCookie, clearSessionCookie } from "@/lib/session";
+import { rateLimit, getClientIp } from "@/lib/rate-limit";
+
+// Audit a failed login attempt (H7). Best-effort — never throw from the
+// auth path because the DB might be the reason auth is failing.
+async function auditFailedLogin(reason: string, email: string, ip: string) {
+  await prisma.auditLog
+    .create({
+      data: {
+        action: "auth.login_failed",
+        target: email,
+        payload: { reason, ip },
+      },
+    })
+    .catch(() => undefined);
+}
 
 // ─── PRIMARY: Email + password login (for ALL staff roles) ───────────────────
 
@@ -15,18 +30,46 @@ export async function adminPasswordLoginAction(
 ) {
   const email = (formData.get("email") as string)?.trim().toLowerCase();
   const password = (formData.get("password") as string) ?? "";
+  const ip = await getClientIp();
 
   if (!email || !password) {
     return { ok: false as const, error: "Email and password required" };
   }
 
+  // C2/H3: rate limit by IP first (10 attempts / 5 min, 15-min ban on
+  // breach) then by email (catches distributed attempts on a single
+  // account). Same generic error so attackers can't differentiate
+  // "throttled" from "wrong password".
+  const ipLimit = rateLimit(`login:ip:${ip}`, 10, 5 * 60_000, 15 * 60_000);
+  if (!ipLimit.ok) {
+    await auditFailedLogin("ip_rate_limit", email, ip);
+    return {
+      ok: false as const,
+      error: `Too many attempts — try again in ${Math.ceil(
+        ipLimit.retryAfterSec / 60
+      )} min.`,
+    };
+  }
+  const emailLimit = rateLimit(`login:email:${email}`, 8, 5 * 60_000, 15 * 60_000);
+  if (!emailLimit.ok) {
+    await auditFailedLogin("email_rate_limit", email, ip);
+    return {
+      ok: false as const,
+      error: `Too many attempts on this account — try again in ${Math.ceil(
+        emailLimit.retryAfterSec / 60
+      )} min.`,
+    };
+  }
+
   const user = await prisma.user.findUnique({ where: { email } });
 
   // Single error message for invalid email, missing password, inactive user — avoids enumeration
-  const reject = () =>
-    ({ ok: false as const, error: "Invalid email or password" }) as const;
+  const reject = async (reason: string) => {
+    await auditFailedLogin(reason, email, ip);
+    return { ok: false as const, error: "Invalid email or password" } as const;
+  };
 
-  if (!user || !user.active) return reject();
+  if (!user || !user.active) return reject(user ? "inactive" : "unknown_email");
 
   // First try the DB-stored bcrypt password
   if (user.passwordHash) {
@@ -55,7 +98,7 @@ export async function adminPasswordLoginAction(
     );
   }
 
-  return reject();
+  return reject("bad_password");
 }
 
 // ─── LEGACY: Email + OTP login (still works for staff with no password set,

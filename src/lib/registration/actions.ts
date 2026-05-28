@@ -2,12 +2,14 @@
 
 import crypto from "node:crypto";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendOtp as authSendOtp, verifyOtp as authVerifyOtp } from "@/lib/auth";
 import { uploadFile, UPLOAD_LIMITS, getFileUrl } from "@/lib/storage";
 import { sendEmail } from "@/lib/email";
 import { registrationConfirmation } from "@/lib/email/templates";
 import { env } from "@/lib/env";
+import { rateLimit, getClientIp } from "@/lib/rate-limit";
 import {
   registrationFormSchema,
   emailSchema,
@@ -27,6 +29,20 @@ export async function requestOtpAction(_prev: unknown, formData: FormData) {
       };
     }
     const email = parsed.data.email;
+
+    // C2: rate-limit registration start by IP — prevents a single host
+    // from enumerating which emails are already registered and from
+    // exhausting Supabase OTP budget.
+    const ip = await getClientIp();
+    const lim = rateLimit(`register:ip:${ip}`, 20, 10 * 60_000, 30 * 60_000);
+    if (!lim.ok) {
+      return {
+        ok: false as const,
+        error: `Too many requests — try again in ${Math.ceil(
+          lim.retryAfterSec / 60
+        )} min.`,
+      };
+    }
 
     // Reject duplicate registration up front — same check in both auth modes
     const existing = await prisma.student.findUnique({ where: { email } });
@@ -89,7 +105,12 @@ export async function verifyOtpAction(_prev: unknown, formData: FormData) {
 // ----- Registration submit -----
 
 export type SubmitResult =
-  | { ok: true; registrationId: string; tokenNumber: number }
+  | {
+      ok: true;
+      registrationId: string;
+      tokenNumber: number;
+      admitCardToken: string;
+    }
   | { ok: false; error: string };
 
 export async function submitRegistrationAction(
@@ -99,12 +120,14 @@ export async function submitRegistrationAction(
   try {
     return await submitRegistrationInner(email, formData);
   } catch (e) {
+    // H6: never leak server-side error text to the client. Full detail
+    // still lands in server logs (Vercel) for debugging.
     const msg = e instanceof Error ? `${e.name}: ${e.message}` : String(e);
     // eslint-disable-next-line no-console
     console.error("[submitRegistrationAction] fatal:", msg, e);
     return {
       ok: false,
-      error: `Submission failed — please try again. (${msg.slice(0, 160)})`,
+      error: "Submission failed — please try again or contact the desk.",
     };
   }
 }
@@ -113,6 +136,19 @@ async function submitRegistrationInner(
   email: string,
   formData: FormData
 ): Promise<SubmitResult> {
+  // C2: hard cap on submissions per IP. A single workstation should not
+  // submit more than ~5 in a 10-minute window in real-world use.
+  const ip = await getClientIp();
+  const lim = rateLimit(`register-submit:ip:${ip}`, 5, 10 * 60_000, 15 * 60_000);
+  if (!lim.ok) {
+    return {
+      ok: false,
+      error: `Too many submissions — wait ${Math.ceil(
+        lim.retryAfterSec / 60
+      )} min before trying again.`,
+    };
+  }
+
   // 1. Validate text fields
   const raw: Record<string, unknown> = {};
   for (const [k, v] of formData.entries()) {
@@ -161,13 +197,14 @@ async function submitRegistrationInner(
   let tokenNumber = 0;
   let registrationId = "";
   let studentId = "";
+  // Per-student secret for the admit-card download URL — hoisted out of
+  // the txn so we can return it to the client for the success-page gate.
+  const admitCardToken = crypto.randomBytes(16).toString("base64url");
 
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await prisma.$transaction(async (txRaw: any) => {
       const tx = txRaw as typeof prisma;
-      // Per-student secret for the admit-card download URL
-      const admitCardToken = crypto.randomBytes(16).toString("base64url");
       const student = await tx.student.create({
         data: {
           registrationId: `PENDING-${Date.now()}`, // placeholder, updated below
@@ -209,29 +246,34 @@ async function submitRegistrationInner(
       });
     });
   } catch (e) {
-    return {
-      ok: false,
-      error:
-        e instanceof Error
-          ? `Database error: ${e.message}`
-          : "Failed to save registration",
-    };
+    // H6: log full detail, return generic.
+    // eslint-disable-next-line no-console
+    console.error("[submitRegistration] db txn failed:", e);
+    return { ok: false, error: "Failed to save registration — please retry." };
   }
 
-  // 5. Upload files (outside txn — large files shouldn't hold a DB connection)
-  const resumeBuf = Buffer.from(await resume.arrayBuffer());
-  const photoBuf = Buffer.from(await photo.arrayBuffer());
+  // 5. Upload files (outside txn — large files shouldn't hold a DB connection).
+  // Perf #1: fire both uploads in parallel + read buffers in parallel.
+  // Was sequential: read resume → read photo → upload resume → upload photo
+  // (4 sequential awaits, ~2-4s total). Now: ~half that.
   const resumeExt = resume.name.split(".").pop()?.toLowerCase() ?? "pdf";
   const photoExt = photo.name.split(".").pop()?.toLowerCase() ?? "jpg";
 
-  const resumeUp = await uploadFile("student-documents", `resumes/${registrationId}.${resumeExt}`, {
-    buffer: resumeBuf,
-    mimeType: resume.type,
-  });
-  const photoUp = await uploadFile("student-documents", `photos/${registrationId}.${photoExt}`, {
-    buffer: photoBuf,
-    mimeType: photo.type,
-  });
+  const [resumeBuf, photoBuf] = await Promise.all([
+    resume.arrayBuffer().then((b) => Buffer.from(b)),
+    photo.arrayBuffer().then((b) => Buffer.from(b)),
+  ]);
+
+  const [resumeUp, photoUp] = await Promise.all([
+    uploadFile("student-documents", `resumes/${registrationId}.${resumeExt}`, {
+      buffer: resumeBuf,
+      mimeType: resume.type,
+    }),
+    uploadFile("student-documents", `photos/${registrationId}.${photoExt}`, {
+      buffer: photoBuf,
+      mimeType: photo.type,
+    }),
+  ]);
 
   if (resumeUp.ok && photoUp.ok) {
     await prisma.student.update({
@@ -240,49 +282,52 @@ async function submitRegistrationInner(
     });
   }
 
-  // 6. Confirmation email — log failures, never silent.
-  // Don't roll back the registration if email fails — student has their token.
-  // Fetch the token-protected URL for the admit card (so email link works
-  // without requiring the student to log in).
-  const studentRow = await prisma.student.findUnique({
-    where: { id: studentId },
-    select: { admitCardToken: true },
-  });
+  // Build the admit-card URL we'll email (and embed in the success page).
   const admitCardUrl =
-    `${env.APP_URL}/api/admit-card/${registrationId}` +
-    (studentRow?.admitCardToken ? `?t=${studentRow.admitCardToken}` : "");
-  const tmpl = registrationConfirmation({
-    fullName: data.fullName,
-    registrationId,
-    tokenNumber,
-    admitCardUrl,
-  });
-  const emailResult = await sendEmail(
-    { to: email, subject: tmpl.subject, html: tmpl.html },
-    { studentId, template: "registration_confirmation" }
-  ).catch((e) => ({
-    ok: false as const,
-    error: e instanceof Error ? e.message : String(e),
-  }));
-  if (!emailResult.ok) {
-    // eslint-disable-next-line no-console
-    console.error("[submitRegistration] confirmation email failed:", {
-      studentId,
-      registrationId,
-      email,
-      error: "error" in emailResult ? emailResult.error : "unknown",
-    });
-  }
+    `${env.APP_URL}/api/admit-card/${registrationId}?t=${admitCardToken}`;
 
-  // 7. Audit log
-  await prisma.auditLog.create({
-    data: {
-      action: "student.register",
-      target: studentId,
-      payload: { registrationId, tokenNumber, email },
-    },
+  // 6 + 7: confirmation email + audit log + cache revalidation all run
+  // AFTER the response is sent to the student. They get their token
+  // immediately; the slow side effects don't block the redirect.
+  after(async () => {
+    try {
+      const tmpl = registrationConfirmation({
+        fullName: data.fullName,
+        registrationId,
+        tokenNumber,
+        admitCardUrl,
+      });
+      const emailResult = await sendEmail(
+        { to: email, subject: tmpl.subject, html: tmpl.html },
+        { studentId, template: "registration_confirmation" }
+      ).catch((e) => ({
+        ok: false as const,
+        error: e instanceof Error ? e.message : String(e),
+      }));
+      if (!emailResult.ok) {
+        // eslint-disable-next-line no-console
+        console.error("[submitRegistration] confirmation email failed:", {
+          studentId,
+          registrationId,
+          email,
+          error: "error" in emailResult ? emailResult.error : "unknown",
+        });
+      }
+
+      await prisma.auditLog.create({
+        data: {
+          action: "student.register",
+          target: studentId,
+          payload: { registrationId, tokenNumber, email },
+        },
+      });
+
+      revalidatePath("/admin");
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error("[submitRegistration] after-hook failure:", e);
+    }
   });
 
-  revalidatePath("/admin");
-  return { ok: true, registrationId, tokenNumber };
+  return { ok: true, registrationId, tokenNumber, admitCardToken };
 }

@@ -5,49 +5,59 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function DisplayPage() {
-  const rooms = await prisma.room.findMany({
-    where: { active: true },
-    orderBy: { roomNumber: "asc" },
-    include: {
-      tokens: {
-        where: { id: { equals: undefined } }, // placeholder so type works
+  // Three independent queries — fire in parallel.
+  const [rooms, upcoming, waitingCount] = await Promise.all([
+    prisma.room.findMany({
+      where: { active: true },
+      orderBy: { roomNumber: "asc" },
+      select: {
+        id: true,
+        roomNumber: true,
+        displayName: true,
+        currentTokenId: true,
       },
-    },
-  });
+    }),
+    prisma.token.findMany({
+      where: { status: "WAITING" },
+      orderBy: { tokenNumber: "asc" },
+      take: 8,
+      select: { tokenNumber: true },
+    }),
+    prisma.token.count({ where: { status: "WAITING" } }),
+  ]);
 
-  // Hydrate current token per room
-  const roomsWithCurrent = await Promise.all(
-    rooms.map(async (r) => {
-      const current = r.currentTokenId
-        ? await prisma.token.findUnique({
-            where: { id: r.currentTokenId },
-            include: { student: { select: { fullName: true } } },
-          })
-        : null;
-      return {
-        id: r.id,
-        roomNumber: r.roomNumber,
-        displayName: r.displayName,
-        currentToken: current
-          ? {
-              tokenNumber: current.tokenNumber,
-              studentName: current.student?.fullName ?? "",
-              status: current.status,
-            }
-          : null,
-      };
-    })
-  );
+  // Perf #5 fix: was N+1 (one findUnique per room). Collect all current
+  // token IDs and fetch them in a single IN() query.
+  const currentIds = rooms
+    .map((r) => r.currentTokenId)
+    .filter((id): id is string => !!id);
+  const currentTokens = currentIds.length
+    ? await prisma.token.findMany({
+        where: { id: { in: currentIds } },
+        select: {
+          id: true,
+          tokenNumber: true,
+          status: true,
+          student: { select: { fullName: true } },
+        },
+      })
+    : [];
+  const byId = new Map(currentTokens.map((t) => [t.id, t]));
 
-  const upcoming = await prisma.token.findMany({
-    where: { status: "WAITING" },
-    orderBy: { tokenNumber: "asc" },
-    take: 8,
-    select: { tokenNumber: true },
-  });
-
-  const waitingCount = await prisma.token.count({
-    where: { status: "WAITING" },
+  const roomsWithCurrent = rooms.map((r) => {
+    const t = r.currentTokenId ? byId.get(r.currentTokenId) : null;
+    return {
+      id: r.id,
+      roomNumber: r.roomNumber,
+      displayName: r.displayName,
+      currentToken: t
+        ? {
+            tokenNumber: t.tokenNumber,
+            studentName: t.student?.fullName ?? "",
+            status: t.status,
+          }
+        : null,
+    };
   });
 
   return (

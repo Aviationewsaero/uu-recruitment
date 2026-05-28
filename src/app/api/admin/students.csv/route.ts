@@ -30,9 +30,15 @@ const COLUMNS: { key: string; label: string }[] = [
   { key: "createdAt", label: "Registered At" },
 ];
 
+// H10: defend against CSV injection. Excel/Sheets will execute formulas
+// in cells that start with =, +, -, @, or whitespace control chars (TAB,
+// CR). Prefix any such value with a single quote so the spreadsheet
+// renders it as text. The leading quote does NOT appear in the cell
+// once parsed.
 function csvEscape(v: unknown): string {
   if (v === null || v === undefined) return "";
-  const s = String(v);
+  let s = String(v);
+  if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
   if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
   return s;
 }

@@ -8,9 +8,12 @@ import { callNextToken } from "@/lib/token-engine";
 import { sendEmail } from "@/lib/email";
 import { templateForDecision } from "@/lib/email/templates";
 
+// NOTE (security C4): studentId is intentionally NOT accepted from the
+// client. We derive it server-side from the token row to prevent a
+// recruiter from flipping the status of an arbitrary student by passing
+// a foreign studentId with a valid tokenId/roomId of their own.
 const decisionSchema = z.object({
   tokenId: z.string().uuid(),
-  studentId: z.string().uuid(),
   roomId: z.string().uuid(),
   decision: z.enum([
     "SHORTLISTED",
@@ -36,13 +39,28 @@ export async function submitInterviewDecision(
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid" };
   }
-  const { tokenId, studentId, roomId, decision, rating, notes, autoAdvance } =
+  const { tokenId, roomId, decision, rating, notes, autoAdvance } =
     parsed.data;
+
+  let studentId = "";
 
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await prisma.$transaction(async (txRaw: any) => {
       const tx = txRaw as typeof prisma;
+
+      // C3: verify the room actually belongs to this recruiter (or caller is
+      // SUPER_ADMIN). Without this any logged-in recruiter could mutate any
+      // other room's current token.
+      const room = await tx.room.findUnique({ where: { id: roomId } });
+      if (!room) throw new Error("Room not found");
+      if (
+        me.role !== "SUPER_ADMIN" &&
+        room.recruiterId !== me.userId
+      ) {
+        throw new Error("This room is not assigned to you");
+      }
+
       const token = await tx.token.findUnique({ where: { id: tokenId } });
       if (!token) throw new Error("Token not found");
       if (token.status !== "IN_PROGRESS" && token.status !== "CALLED") {
@@ -50,6 +68,13 @@ export async function submitInterviewDecision(
           `Cannot record decision: token is ${token.status.toLowerCase()}`
         );
       }
+      // Token must be the one currently called into THIS room.
+      if (token.roomId !== roomId) {
+        throw new Error("Token is not in this room");
+      }
+      // C4: derive studentId from the token, not from the client payload.
+      studentId = token.studentId as string;
+
       const startedAt = token.startedAt ?? token.calledAt ?? new Date();
       const endedAt = new Date();
 

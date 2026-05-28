@@ -4,7 +4,9 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { verifySession, SESSION_COOKIE_NAME } from "@/lib/session";
 
-const PROTECTED = ["/admin", "/recruiter"];
+// All admin-only segments. /api/admin/* was previously unprotected — that
+// meant CSV export, bulk email, etc. were reachable without a session.
+const PROTECTED = ["/admin", "/recruiter", "/api/admin"];
 const PUBLIC_INSIDE_ADMIN = ["/admin/login"];
 
 export function proxy(req: NextRequest) {

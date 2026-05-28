@@ -109,9 +109,10 @@ export function RecruiterDashboard({
     }
     setError(null);
     start(async () => {
+      // studentId intentionally omitted — derived server-side from token
+      // to prevent cross-student mutation (see recruiter/actions.ts C4).
       const r = await submitInterviewDecision({
         tokenId: currentToken.id,
-        studentId: currentToken.student.id,
         roomId: room.id,
         decision,
         rating,

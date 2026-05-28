@@ -47,12 +47,27 @@ export function BulkEmailComposer({
       setError("Preview the audience first");
       return;
     }
-    if (
+    // H11: for any audience > 25, require the operator to type the exact
+    // recipient count. Single-click "OK" was too easy to mash through and
+    // accidentally blast 700 students.
+    if (preview.count > 25) {
+      const typed = window.prompt(
+        `You are about to email ${preview.count.toLocaleString()} students.\n\n` +
+          `This cannot be undone. To confirm, TYPE the recipient count below:`,
+        ""
+      );
+      if (typed === null) return;
+      if (typed.trim() !== String(preview.count)) {
+        toast.error("Count mismatch — send cancelled");
+        return;
+      }
+    } else if (
       !confirm(
         `Send "${subject}" to ${preview.count} student${preview.count === 1 ? "" : "s"}? This cannot be undone.`
       )
-    )
+    ) {
       return;
+    }
     start(async () => {
       setError(null);
       const r = await sendBulkAction({ audience, subject, htmlBody });
