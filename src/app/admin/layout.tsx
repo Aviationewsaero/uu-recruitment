@@ -12,6 +12,7 @@ const NAV: { href: string; label: string; roles: string[] }[] = [
   { href: "/admin/users", label: "Staff Accounts", roles: ["SUPER_ADMIN"] },
   { href: "/admin/qr-poster", label: "QR Poster", roles: ["SUPER_ADMIN", "DESK_OPERATOR"] },
   { href: "/admin/runbook", label: "Runbook", roles: ["SUPER_ADMIN", "DESK_OPERATOR"] },
+  { href: "/admin/email-test", label: "Email Diagnostic", roles: ["SUPER_ADMIN"] },
 ];
 
 export default async function AdminLayout({
