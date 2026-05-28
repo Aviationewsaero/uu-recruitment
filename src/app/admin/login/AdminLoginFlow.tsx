@@ -19,10 +19,11 @@ const ROLE_LANDING: Record<string, string> = {
   EMAIL_MANAGER: "/admin",
 };
 
-type Mode = "otp-email" | "otp-code" | "password";
+type Mode = "password" | "otp-email" | "otp-code";
 
 export function AdminLoginFlow() {
-  const [mode, setMode] = useState<Mode>("otp-email");
+  // Password mode is the primary login path now
+  const [mode, setMode] = useState<Mode>("password");
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
@@ -37,19 +38,21 @@ export function AdminLoginFlow() {
 
   return (
     <div className="rounded-xl border border-brand-border bg-brand-surface p-6 shadow-sm">
-      {/* ─── OTP step 1: email ────────────────────────────────────────────── */}
-      {mode === "otp-email" && (
+      {/* ─── PRIMARY: Password login ────────────────────────────────────── */}
+      {mode === "password" && (
         <form
           onSubmit={(e) => {
             e.preventDefault();
             setError(null);
             const fd = new FormData(e.currentTarget);
             start(async () => {
-              const r = await adminRequestOtpAction(null, fd);
-              if (!r.ok) return setError(r.error);
-              setEmail(r.email);
-              setMode("otp-code");
-              toast.success("Code sent — check your inbox");
+              const r = await adminPasswordLoginAction(null, fd);
+              if (!r.ok) {
+                setError(r.error);
+                return;
+              }
+              toast.success("Signed in");
+              goAfterLogin(r.role);
             });
           }}
         >
@@ -66,22 +69,83 @@ export function AdminLoginFlow() {
               disabled={pending}
               placeholder="you@ews.aero"
             />
+          </FormField>
+          <FormField>
+            <Label htmlFor="password" required>
+              Password
+            </Label>
+            <Input
+              id="password"
+              name="password"
+              type="password"
+              autoComplete="current-password"
+              required
+              disabled={pending}
+              placeholder="••••••••"
+            />
             <FieldHint>
-              Must be a pre-provisioned staff account. Contact admin if you
-              need access.
+              Password set by your admin when your account was created.
+              Contact them if you don&apos;t have it.
             </FieldHint>
             <FieldError message={error ?? undefined} />
           </FormField>
-          <Button
-            type="submit"
-            size="lg"
-            className="mt-6 w-full"
-            disabled={pending}
-          >
-            {pending ? "Sending…" : "Send code →"}
+          <Button type="submit" size="lg" className="mt-6 w-full" disabled={pending}>
+            {pending ? "Signing in…" : "Sign in →"}
           </Button>
 
-          {/* Break-glass affordance */}
+          <div className="mt-5 pt-4 border-t border-brand-border text-center">
+            <button
+              type="button"
+              onClick={() => {
+                setMode("otp-email");
+                setError(null);
+              }}
+              className="text-xs text-brand-muted hover:text-brand-text underline-offset-2 hover:underline"
+            >
+              No password yet? Use email code instead
+            </button>
+          </div>
+        </form>
+      )}
+
+      {/* ─── LEGACY: OTP step 1 ─────────────────────────────────────────── */}
+      {mode === "otp-email" && (
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            setError(null);
+            const fd = new FormData(e.currentTarget);
+            start(async () => {
+              const r = await adminRequestOtpAction(null, fd);
+              if (!r.ok) return setError(r.error);
+              setEmail(r.email);
+              setMode("otp-code");
+              toast.success("Code sent — check your inbox");
+            });
+          }}
+        >
+          <div className="mb-4 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+            Email-code login (slower, requires working inbox). Use password
+            login above for instant access.
+          </div>
+          <FormField>
+            <Label htmlFor="otp-email" required>
+              Staff email
+            </Label>
+            <Input
+              id="otp-email"
+              name="email"
+              type="email"
+              autoComplete="email"
+              required
+              disabled={pending}
+              placeholder="you@ews.aero"
+            />
+            <FieldError message={error ?? undefined} />
+          </FormField>
+          <Button type="submit" size="lg" className="mt-6 w-full" disabled={pending}>
+            {pending ? "Sending…" : "Send code →"}
+          </Button>
           <div className="mt-5 pt-4 border-t border-brand-border text-center">
             <button
               type="button"
@@ -91,13 +155,13 @@ export function AdminLoginFlow() {
               }}
               className="text-xs text-brand-muted hover:text-brand-text underline-offset-2 hover:underline"
             >
-              Super admin · sign in with password
+              ← Back to password login
             </button>
           </div>
         </form>
       )}
 
-      {/* ─── OTP step 2: code ─────────────────────────────────────────────── */}
+      {/* ─── LEGACY: OTP step 2 ─────────────────────────────────────────── */}
       {mode === "otp-code" && (
         <form
           onSubmit={(e) => {
@@ -143,87 +207,9 @@ export function AdminLoginFlow() {
             />
             <FieldError message={error ?? undefined} />
           </FormField>
-          <Button
-            type="submit"
-            size="lg"
-            className="mt-6 w-full"
-            disabled={pending}
-          >
+          <Button type="submit" size="lg" className="mt-6 w-full" disabled={pending}>
             {pending ? "Verifying…" : "Sign in →"}
           </Button>
-        </form>
-      )}
-
-      {/* ─── Break-glass: password login (super admin only) ───────────────── */}
-      {mode === "password" && (
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            setError(null);
-            const fd = new FormData(e.currentTarget);
-            start(async () => {
-              const r = await adminPasswordLoginAction(null, fd);
-              if (!r.ok) return setError(r.error);
-              toast.success("Signed in (password)");
-              goAfterLogin(r.role);
-            });
-          }}
-        >
-          <div className="mb-4 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-            <strong>Emergency password mode.</strong> Only configured for the
-            super admin account. Regular staff: please use OTP instead.
-          </div>
-
-          <FormField>
-            <Label htmlFor="pw-email" required>
-              Super admin email
-            </Label>
-            <Input
-              id="pw-email"
-              name="email"
-              type="email"
-              autoComplete="email"
-              required
-              disabled={pending}
-              placeholder="bhupender@eliteworldservices.com"
-            />
-          </FormField>
-          <FormField>
-            <Label htmlFor="pw-password" required>
-              Password
-            </Label>
-            <Input
-              id="pw-password"
-              name="password"
-              type="password"
-              autoComplete="current-password"
-              required
-              disabled={pending}
-              placeholder="••••••••••••"
-            />
-            <FieldError message={error ?? undefined} />
-          </FormField>
-          <Button
-            type="submit"
-            size="lg"
-            className="mt-6 w-full"
-            disabled={pending}
-          >
-            {pending ? "Signing in…" : "Sign in with password →"}
-          </Button>
-
-          <div className="mt-5 pt-4 border-t border-brand-border text-center">
-            <button
-              type="button"
-              onClick={() => {
-                setMode("otp-email");
-                setError(null);
-              }}
-              className="text-xs text-brand-muted hover:text-brand-text underline-offset-2 hover:underline"
-            >
-              ← Back to OTP login
-            </button>
-          </div>
         </form>
       )}
     </div>

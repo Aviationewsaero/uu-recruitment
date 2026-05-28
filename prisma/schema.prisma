@@ -146,13 +146,16 @@ model InterviewLog {
   @@index([decision])
 }
 
-// Mirrors Supabase Auth users — id matches auth.users.id
+// Staff accounts. Originally mirrored Supabase Auth users — kept the
+// `id` shape for backwards compatibility, but the canonical login is now
+// email + DB-stored bcrypt hash (Supabase OTP retained as optional path).
 model User {
-  id            String         @id @db.Uuid // == auth.users.id
+  id            String         @id @db.Uuid
   email         String         @unique
   fullName      String
   role          UserRole
   active        Boolean        @default(true)
+  passwordHash  String? // bcrypt; nullable so we don't break existing seeded rows
   rooms         Room[]
   interviewLogs InterviewLog[]
   auditLogs     AuditLog[]
