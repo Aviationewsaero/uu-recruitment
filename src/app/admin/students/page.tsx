@@ -102,7 +102,7 @@ export default async function StudentsPage({ searchParams }: PageProps) {
                   key={s.id}
                   className="border-t border-brand-border hover:bg-brand-bg/50"
                 >
-                  <td className="px-4 py-3 font-bold tabular-nums">
+                  <td className="px-4 py-3 text-2xl font-extrabold tabular-nums text-brand-navy leading-none">
                     #{s.token?.tokenNumber ?? "—"}
                   </td>
                   <td className="px-4 py-3">

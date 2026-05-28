@@ -124,8 +124,8 @@ export function QueueClient({ initial }: { initial: Item[] }) {
                   key={t.id}
                   className="border-t border-brand-border hover:bg-brand-bg/50"
                 >
-                  <td className="px-4 py-3 font-bold tabular-nums">
-                    {t.tokenNumber}
+                  <td className="px-4 py-3 text-2xl font-extrabold tabular-nums text-brand-navy leading-none">
+                    #{t.tokenNumber}
                   </td>
                   <td className="px-4 py-3">{t.studentName}</td>
                   <td className="px-4 py-3 text-brand-muted">

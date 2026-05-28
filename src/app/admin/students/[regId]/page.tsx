@@ -54,11 +54,16 @@ export default async function StudentDetailPage({ params }: PageProps) {
           <div className="h-20 w-20 rounded-lg bg-brand-bg border border-brand-border" />
         )}
         <div className="flex-1">
-          <h1 className="text-2xl font-bold text-brand-text">
-            {student.fullName}
-          </h1>
+          <div className="flex items-center gap-4">
+            <h1 className="text-2xl font-bold text-brand-text">
+              {student.fullName}
+            </h1>
+            <span className="text-3xl font-extrabold tabular-nums text-brand-navy leading-none tracking-tight">
+              #{student.token?.tokenNumber ?? "—"}
+            </span>
+          </div>
           <p className="mt-1 font-mono text-sm text-brand-muted">
-            {student.registrationId} · Token #{student.token?.tokenNumber ?? "—"}
+            {student.registrationId}
           </p>
           <p className="mt-2 inline-block rounded-full bg-brand-bg border border-brand-border px-3 py-1 text-xs font-medium">
             {student.status.replace("_", " ").toLowerCase()}

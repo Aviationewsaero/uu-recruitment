@@ -174,19 +174,26 @@ export function RecruiterDashboard({
                 ) : (
                   <div className="h-16 w-16 rounded-lg bg-brand-bg border border-brand-border" />
                 )}
-                <div>
-                  <p className="text-xs uppercase tracking-widest text-brand-muted">
-                    Now interviewing · Token{" "}
-                    <strong className="text-brand-green">
+                <div className="flex items-center gap-5">
+                  <div className="rounded-xl bg-brand-green/10 border border-brand-green/30 px-5 py-3 text-center min-w-[7rem]">
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-green-dark">
+                      Token
+                    </p>
+                    <p className="text-5xl font-extrabold text-brand-green tabular-nums leading-none tracking-tight">
                       #{currentToken.tokenNumber}
-                    </strong>
-                  </p>
-                  <h1 className="text-2xl font-bold text-brand-text">
-                    {currentToken.student.fullName}
-                  </h1>
-                  <p className="text-sm font-mono text-brand-muted">
-                    {currentToken.student.registrationId}
-                  </p>
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-widest text-brand-muted">
+                      Now interviewing
+                    </p>
+                    <h1 className="text-2xl font-bold text-brand-text">
+                      {currentToken.student.fullName}
+                    </h1>
+                    <p className="text-sm font-mono text-brand-muted">
+                      {currentToken.student.registrationId}
+                    </p>
+                  </div>
                 </div>
               </div>
               {currentToken.status === "CALLED" && (

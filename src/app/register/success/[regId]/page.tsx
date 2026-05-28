@@ -65,12 +65,15 @@ export default async function SuccessPage({ params, searchParams }: PageProps) {
           </div>
 
           <div className="grid sm:grid-cols-2">
-            <div className="border-r border-brand-border p-8">
-              <p className="text-xs uppercase tracking-widest text-brand-muted">
+            <div className="border-r border-brand-border p-8 flex flex-col items-center justify-center text-center">
+              <p className="text-xs font-semibold uppercase tracking-widest text-brand-muted">
                 Your token number
               </p>
-              <p className="mt-2 text-7xl font-bold text-brand-green tabular-nums">
+              <p className="mt-3 text-[9rem] sm:text-[11rem] font-extrabold text-brand-green tabular-nums leading-none tracking-tight">
                 #{student.token.tokenNumber}
+              </p>
+              <p className="mt-2 text-xs text-brand-muted">
+                Remember this number. Watch the display screen at the venue.
               </p>
             </div>
             <div className="p-8">
