@@ -27,6 +27,7 @@ import {
   verifyOtpAction,
   submitRegistrationAction,
 } from "@/lib/registration/actions";
+import { compressImage } from "@/lib/image-compress";
 
 type Step = "email" | "otp" | "form";
 
@@ -270,16 +271,28 @@ function RegistrationForm({
               if (v === undefined || v === null) continue;
               fd.set(k, v as string | Blob);
             }
-            const fileForm = document.querySelector<HTMLFormElement>(
-              "#file-fields"
-            );
+            const fileForm =
+              document.querySelector<HTMLFormElement>("#file-fields");
             if (fileForm) {
               const resume = (
-                fileForm.querySelector('[name="resume"]') as HTMLInputElement | null
+                fileForm.querySelector(
+                  '[name="resume"]'
+                ) as HTMLInputElement | null
               )?.files?.[0];
-              const photo = (
-                fileForm.querySelector('[name="photo"]') as HTMLInputElement | null
+              let photo = (
+                fileForm.querySelector(
+                  '[name="photo"]'
+                ) as HTMLInputElement | null
               )?.files?.[0];
+              // Compress phone-camera photos so we don't hit Vercel timeouts
+              if (photo) {
+                try {
+                  photo = await compressImage(photo);
+                } catch {
+                  // If compression fails for any reason, fall through with the
+                  // original file — server will reject if it's too large.
+                }
+              }
               if (resume) fd.set("resume", resume);
               if (photo) fd.set("photo", photo);
             }
@@ -291,6 +304,10 @@ function RegistrationForm({
             }
             toast.success(`Registered! Token #${res.tokenNumber}`);
             onSubmitted(res.registrationId);
+          } catch (e) {
+            const msg = e instanceof Error ? e.message : "Unknown error";
+            setSubmitError(`Submit failed: ${msg}`);
+            toast.error("Submission failed — try again or use a smaller photo");
           } finally {
             setUploading(false);
           }

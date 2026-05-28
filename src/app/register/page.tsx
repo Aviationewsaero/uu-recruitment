@@ -1,6 +1,9 @@
 import { RegistrationFlow } from "./RegistrationFlow";
 
 export const dynamic = "force-dynamic";
+// Submitting includes file uploads to Supabase Storage + DB transaction +
+// email send. Bump from the default 15s so slow networks have headroom.
+export const maxDuration = 60;
 
 export default function RegisterPage() {
   return (

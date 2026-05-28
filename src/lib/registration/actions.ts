@@ -96,6 +96,23 @@ export async function submitRegistrationAction(
   email: string,
   formData: FormData
 ): Promise<SubmitResult> {
+  try {
+    return await submitRegistrationInner(email, formData);
+  } catch (e) {
+    const msg = e instanceof Error ? `${e.name}: ${e.message}` : String(e);
+    // eslint-disable-next-line no-console
+    console.error("[submitRegistrationAction] fatal:", msg, e);
+    return {
+      ok: false,
+      error: `Submission failed — please try again. (${msg.slice(0, 160)})`,
+    };
+  }
+}
+
+async function submitRegistrationInner(
+  email: string,
+  formData: FormData
+): Promise<SubmitResult> {
   // 1. Validate text fields
   const raw: Record<string, unknown> = {};
   for (const [k, v] of formData.entries()) {
