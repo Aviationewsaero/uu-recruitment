@@ -49,7 +49,7 @@ body {
   top: 8px;
 }
 
-/* Print styles — admit cards, interview slips, operator runbook */
+/* Print styles — admit cards, interview slips, runbook, QR poster */
 @media print {
   body {
     background: white !important;
@@ -59,11 +59,19 @@ body {
   header[class*="border-b"] form {
     display: none !important;
   }
-  .print-runbook {
+  .print-runbook,
+  .qr-poster {
     box-shadow: none !important;
     border: 0 !important;
   }
+  .qr-poster-page {
+    padding: 0 !important;
+  }
   a[href]::after {
     content: "";
+  }
+  @page {
+    size: A4;
+    margin: 10mm;
   }
 }
