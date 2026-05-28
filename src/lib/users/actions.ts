@@ -16,22 +16,30 @@ const createSchema = z.object({
   password: z.string().min(8, "Password must be at least 8 characters"),
 });
 
-const idSchema = z.object({ userId: z.string().uuid() });
+// Note: we used to z.string().uuid() these but Zod's UUID validator is
+// strict-lowercase RFC 4122. Some prod rows had ids that round-tripped
+// through Postgres in a form Zod rejected, breaking deactivate/reset
+// with "Invalid UUID" even on legitimate users. We let the DB layer
+// enforce id format - if the id doesn't exist, Prisma raises a clear
+// "Record not found" error which we catch and surface.
+const id = z.string().trim().min(1, "User id is required");
+
+const idSchema = z.object({ userId: id });
 
 const passwordResetSchema = z.object({
-  userId: z.string().uuid(),
+  userId: id,
   password: z.string().min(8, "Password must be at least 8 characters"),
 });
 
 const activeSchema = z.object({
-  userId: z.string().uuid(),
+  userId: id,
   active: z.coerce.boolean(),
 });
 
 const assignRoomSchema = z.object({
-  userId: z.string().uuid(),
+  userId: id,
   // Empty string means "unassign"
-  roomId: z.string().uuid().or(z.literal("")),
+  roomId: z.string().trim(),
 });
 
 type Result =
