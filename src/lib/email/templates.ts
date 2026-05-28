@@ -52,7 +52,7 @@ export function registrationConfirmation(args: {
 }) {
   const { fullName, registrationId, tokenNumber, admitCardUrl } = args;
   return {
-    subject: `✈️ Registration confirmed - Token #${tokenNumber} · UU Aviation Recruitment`,
+    subject: `Registration confirmed - Token #${tokenNumber} · UU Aviation Recruitment`,
     html: shell({
       title: "Registration Confirmed",
       preview: `Your token is #${tokenNumber}. Download your admit card.`,
@@ -71,7 +71,7 @@ export function registrationConfirmation(args: {
           <li>Arrive at the venue 30 minutes before your token is called</li>
           <li>Watch the live display board for your token number</li>
         </ul>
-        <p><a class="btn" href="${admitCardUrl}">Download Admit Card →</a></p>
+        <p><a class="btn" href="${admitCardUrl}">Download Admit Card -></a></p>
         <p style="margin-top:32px;color:#64748b;font-size:13px;">If you didn't register, please ignore this email.</p>
       `,
     }),
@@ -87,7 +87,7 @@ type DecisionArgs = { fullName: string; tokenNumber: number; registrationId: str
 
 export function selectedEmail({ fullName, registrationId }: DecisionArgs) {
   return {
-    subject: "🎉 Congratulations - You're selected (UU Aviation Recruitment)",
+    subject: "Congratulations - You're selected (UU Aviation Recruitment)",
     html: shell({
       title: "You're selected!",
       preview: "Welcome aboard - next steps inside.",
@@ -112,7 +112,7 @@ export function selectedEmail({ fullName, registrationId }: DecisionArgs) {
 
 export function shortlistedEmail({ fullName, registrationId }: DecisionArgs) {
   return {
-    subject: "📋 You're shortlisted - UU Aviation Recruitment",
+    subject: "You're shortlisted - UU Aviation Recruitment",
     html: shell({
       title: "You're shortlisted",
       preview: "Final decision in 5 working days.",

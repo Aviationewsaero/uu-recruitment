@@ -48,19 +48,43 @@ function sanitiseHeaderValue(s: string | undefined): string {
   return out.trim();
 }
 
+/** Render a string as a hex-codepoint trail, e.g. "A-B" -> "A(41) -(2D) B(42)".
+ *  Used in the error path so we can see EXACTLY what high-codepoint char
+ *  is still slipping through after sanitisation. */
+function debugCodepoints(s: string): string {
+  return Array.from(s)
+    .map((ch) => `${ch}(${ch.codePointAt(0)!.toString(16).toUpperCase()})`)
+    .join(" ");
+}
+
 export async function send(payload: EmailPayload): Promise<{ id?: string }> {
   const from = sanitiseHeaderValue(env.EMAIL_FROM);
   const replyTo = sanitiseHeaderValue(env.EMAIL_REPLY_TO);
   const subject = sanitiseHeaderValue(payload.subject);
+  const to = sanitiseHeaderValue(payload.to);
 
-  const { data, error } = await client().emails.send({
-    from,
-    to: payload.to,
-    replyTo,
-    subject,
-    html: payload.html, // body stays UTF-8 - JSON-encoded, no ByteString limit
-    text: payload.text,
-  });
-  if (error) throw new Error(error.message);
-  return { id: data?.id };
+  try {
+    const { data, error } = await client().emails.send({
+      from,
+      to,
+      replyTo,
+      subject,
+      html: payload.html, // body stays UTF-8 - JSON-encoded, no ByteString limit
+      text: payload.text,
+    });
+    if (error) throw new Error(error.message);
+    return { id: data?.id };
+  } catch (e) {
+    // Re-throw with a much more helpful message that includes a codepoint
+    // trail of every header field, so the diagnostic page (and Vercel logs)
+    // surface exactly where the offending char lives.
+    const orig = e instanceof Error ? e.message : String(e);
+    throw new Error(
+      `${orig}\n` +
+        `  from   : ${debugCodepoints(from)}\n` +
+        `  to     : ${debugCodepoints(to)}\n` +
+        `  replyTo: ${debugCodepoints(replyTo)}\n` +
+        `  subject: ${debugCodepoints(subject)}`
+    );
+  }
 }
