@@ -32,9 +32,25 @@ export function PhotoField({
 
   useEffect(() => {
     if (status.kind !== "processing") return;
-    const id = setInterval(() => setTick((t) => t + 1), 1000);
+    const id = setInterval(() => setTick((t) => t + 1), 500);
     return () => clearInterval(id);
   }, [status.kind]);
+
+  // Hard auto-fallback: if processing has been going for 8 seconds, force
+  // the original through. The student is never trapped, even if they
+  // didn't see the manual button.
+  useEffect(() => {
+    if (status.kind !== "processing") return;
+    const elapsed = Date.now() - status.startedAt;
+    if (elapsed >= 8000) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        "[PhotoField] auto-fallback at 8s - using original file"
+      );
+      useOriginalAnyway();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tick, status]);
 
   useEffect(() => {
     if (status.kind === "ready") onChange(status.result.file);
@@ -145,20 +161,20 @@ export function PhotoField({
               </p>
             </div>
           </div>
-          {elapsed >= 8 && (
-            <div className="rounded border border-amber-300 bg-amber-50 p-3 text-xs space-y-2">
-              <p className="text-amber-900">
-                Taking longer than usual on this phone. You can wait, or use
-                the photo as-is (will upload at full size).
-              </p>
-              <button
-                type="button"
-                onClick={useOriginalAnyway}
-                className="rounded-md bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-700"
-              >
-                Use photo as-is
-              </button>
-            </div>
+          {/* Escape hatch appears at 2 seconds - tap to skip compression. */}
+          {elapsed >= 2 && (
+            <button
+              type="button"
+              onClick={useOriginalAnyway}
+              className="w-full rounded-md bg-brand-green px-4 py-3 text-base font-bold text-white hover:bg-brand-green-dark active:scale-[0.98] shadow-md"
+            >
+              ⚡ Tap here to use photo NOW
+            </button>
+          )}
+          {elapsed >= 2 && (
+            <p className="text-xs text-center text-brand-muted">
+              Skip the wait - photo will upload at original size
+            </p>
           )}
         </div>
       )}

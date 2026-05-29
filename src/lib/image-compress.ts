@@ -7,10 +7,10 @@ const MAX_DIM = 800;
 const TARGET_BYTES = 150 * 1024;
 const Q_HIGH = 0.78;
 const Q_LOW = 0.6;
-// Per-step timeout - if any single async step (HEIC decode, bitmap
-// decode, blob encode) takes longer than this, bail. iPhone 6/SE class
-// devices sometimes hang for 30+ seconds on 12MP HEIC photos.
-const STEP_TIMEOUT_MS = 12_000;
+// Per-step timeout. AGGRESSIVE - we'd rather upload a bigger original
+// than have the student staring at a spinner. Server now accepts 8 MB
+// so it's safe to bail compression and pass the original through.
+const STEP_TIMEOUT_MS = 5_000;
 
 const HEIC_TYPES = new Set([
   "image/heic",
