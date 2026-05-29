@@ -80,6 +80,17 @@ export async function send(payload: EmailPayload): Promise<{ id?: string }> {
   const replyTo = sanitiseHeaderValue(env.EMAIL_REPLY_TO);
   const subject = sanitiseHeaderValue(payload.subject);
   const to = sanitiseHeaderValue(payload.to);
+  // BCC every outgoing send to the team archive address - unless that
+  // address IS the recipient (avoids the diagnostic test email landing
+  // twice in aviation@ews.aero's inbox). Set EMAIL_BCC to "off" on
+  // Vercel to disable post-drive.
+  const bccRaw = sanitiseHeaderValue(env.EMAIL_BCC);
+  const bcc =
+    bccRaw &&
+    bccRaw.toLowerCase() !== "off" &&
+    bccRaw.toLowerCase() !== to.toLowerCase()
+      ? bccRaw
+      : null;
   // The HTML body is supposed to be JSON-safe UTF-8, BUT undici's
   // Headers.set() trips on chars > 0xFF in some Resend SDK versions when
   // building internal headers off the body. Sanitise defensively.
@@ -113,6 +124,7 @@ export async function send(payload: EmailPayload): Promise<{ id?: string }> {
       from,
       to,
       replyTo,
+      ...(bcc ? { bcc } : {}),
       subject,
       html,
       text,
@@ -127,6 +139,7 @@ export async function send(payload: EmailPayload): Promise<{ id?: string }> {
         `  from   : ${debugCodepoints(from)}\n` +
         `  to     : ${debugCodepoints(to)}\n` +
         `  replyTo: ${debugCodepoints(replyTo)}\n` +
+        `  bcc    : ${bcc ? debugCodepoints(bcc) : "(none)"}\n` +
         `  subject: ${debugCodepoints(subject)}\n` +
         `  htmlLen: ${html.length}  htmlPreview: ${html.slice(0, 60)}…`
     );

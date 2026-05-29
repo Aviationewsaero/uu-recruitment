@@ -41,6 +41,11 @@ export const env = {
     "EWS Aviation Recruitment <aviation@ews.aero>"
   ),
   EMAIL_REPLY_TO: optional("EMAIL_REPLY_TO", "aviation@ews.aero"),
+  // BCC on every outgoing transactional email so the team has an archive
+  // of what the system sent students. Set to literal "off" on Vercel to
+  // disable post-drive. Skipped automatically when the recipient IS the
+  // BCC address (avoid self-loops on diagnostic tests).
+  EMAIL_BCC: optional("EMAIL_BCC", "aviation@ews.aero"),
 } as const;
 
 // Assert critical envs at app boot when in prod mode

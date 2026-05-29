@@ -16,6 +16,7 @@ export default async function EmailTestPage() {
   const mode = env.EMAIL_MODE;
   const from = env.EMAIL_FROM;
   const replyTo = env.EMAIL_REPLY_TO;
+  const bcc = env.EMAIL_BCC;
   const apiKey = env.RESEND_API_KEY;
   // After all sanitisers, what length does the key reduce to? Resend keys
   // are exactly 36 chars (re_ + 33). Anything longer = newline / dup paste.
@@ -79,6 +80,15 @@ export default async function EmailTestPage() {
           <dt className="font-semibold text-brand-text">EMAIL_REPLY_TO</dt>
           <dd className="font-mono break-all text-brand-text">
             {replyTo || <span className="text-brand-muted">&lt;empty&gt;</span>}
+          </dd>
+
+          <dt className="font-semibold text-brand-text">EMAIL_BCC</dt>
+          <dd className="font-mono break-all text-brand-text">
+            {bcc && bcc.toLowerCase() !== "off" ? (
+              <span className="text-brand-green-dark">{bcc} (active)</span>
+            ) : (
+              <span className="text-brand-muted">{bcc || "<not set>"} (BCC disabled)</span>
+            )}
           </dd>
 
           <dt className="font-semibold text-brand-text">APP_URL</dt>
