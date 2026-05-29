@@ -277,16 +277,9 @@ function RegistrationForm({
               if (v === undefined || v === null) continue;
               fd.set(k, v as string | Blob);
             }
-            // Photo lives in React state (set by PhotoField via onChange).
-            // Resume is still a normal file input so we read it from DOM.
-            if (!photoFile) {
-              setSubmitError(
-                "Please pick or take a passport-size photo before submitting."
-              );
-              toast.error("Photo is required");
-              setUploading(false);
-              return;
-            }
+            // Photo is OPTIONAL during the drive (Android failures). If the
+            // student provided one we send it; if not, submit proceeds and
+            // the desk operator collects the photo on-site.
             const resumeInput =
               document.querySelector<HTMLInputElement>(
                 '#file-fields [name="resume"]'
@@ -299,7 +292,7 @@ function RegistrationForm({
               return;
             }
             fd.set("resume", resume);
-            fd.set("photo", photoFile);
+            if (photoFile) fd.set("photo", photoFile);
             const res = await submitRegistrationAction(email, fd);
             if (!res.ok) {
               setSubmitError(res.error);
@@ -509,12 +502,13 @@ function RegistrationForm({
             />
           </FormField>
           <FormField>
-            <Label required>Passport-size photo</Label>
+            <Label>Passport-size photo (optional)</Label>
             <PhotoField onChange={setPhotoFile} />
             <FieldHint>
-              Upload from gallery OR take a new photo. We resize and
-              compress automatically to ~150 KB before upload, so even
-              big iPhone HEIC photos work.
+              <strong>Skip this if your phone is slow.</strong> You can
+              register without a photo - the desk team will collect it
+              on-site. If you do want to upload now, pick from gallery
+              OR take a new photo.
             </FieldHint>
           </FormField>
         </div>

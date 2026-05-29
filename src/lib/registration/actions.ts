@@ -177,22 +177,27 @@ async function submitRegistrationInner(
   const photo = formData.get("photo") as File | null;
   if (!resume || resume.size === 0)
     return { ok: false, error: "Resume is required" };
-  if (!photo || photo.size === 0)
-    return { ok: false, error: "Photo is required" };
   if (resume.size > UPLOAD_LIMITS.resume.maxBytes)
     return { ok: false, error: "Resume exceeds 5MB" };
-  if (photo.size > UPLOAD_LIMITS.photo.maxBytes)
-    return {
-      ok: false,
-      error: `Photo too large (${(photo.size / 1024 / 1024).toFixed(1)} MB). Try a smaller image or use Gallery instead of Camera.`,
-    };
   if (!UPLOAD_LIMITS.resume.mimeTypes.includes(resume.type as never))
     return { ok: false, error: "Resume must be PDF or DOCX" };
-  if (!UPLOAD_LIMITS.photo.mimeTypes.includes(photo.type as never))
-    return {
-      ok: false,
-      error: `Photo format not supported (${photo.type || "unknown"}). Please pick a JPG or PNG from your gallery.`,
-    };
+
+  // Photo is OPTIONAL during the live drive - many Android phones are
+  // failing the upload. Students register without it; desk operator
+  // collects photo on-site via WhatsApp/email and attaches later.
+  const hasPhoto = photo && photo.size > 0;
+  if (hasPhoto) {
+    if (photo.size > UPLOAD_LIMITS.photo.maxBytes)
+      return {
+        ok: false,
+        error: `Photo too large (${(photo.size / 1024 / 1024).toFixed(1)} MB). Submit without photo - we'll collect at the desk.`,
+      };
+    if (!UPLOAD_LIMITS.photo.mimeTypes.includes(photo.type as never))
+      return {
+        ok: false,
+        error: `Photo format not supported. Submit without photo - we'll collect at the desk.`,
+      };
+  }
 
   // 3. Race-check email uniqueness one more time
   if (await prisma.student.findUnique({ where: { email } })) {
@@ -259,32 +264,46 @@ async function submitRegistrationInner(
   }
 
   // 5. Upload files (outside txn — large files shouldn't hold a DB connection).
-  // Perf #1: fire both uploads in parallel + read buffers in parallel.
-  // Was sequential: read resume → read photo → upload resume → upload photo
-  // (4 sequential awaits, ~2-4s total). Now: ~half that.
+  // Photo is optional now; only attempt the photo upload if the student
+  // provided one. Resume is still required and always uploads.
   const resumeExt = resume.name.split(".").pop()?.toLowerCase() ?? "pdf";
-  const photoExt = photo.name.split(".").pop()?.toLowerCase() ?? "jpg";
 
-  const [resumeBuf, photoBuf] = await Promise.all([
+  const tasks: Array<Promise<unknown>> = [
     resume.arrayBuffer().then((b) => Buffer.from(b)),
-    photo.arrayBuffer().then((b) => Buffer.from(b)),
-  ]);
+  ];
+  if (hasPhoto) {
+    tasks.push(photo!.arrayBuffer().then((b) => Buffer.from(b)));
+  }
+  const bufs = (await Promise.all(tasks)) as Buffer[];
+  const resumeBuf = bufs[0];
+  const photoBuf = hasPhoto ? bufs[1] : undefined;
 
-  const [resumeUp, photoUp] = await Promise.all([
+  const uploadTasks: Array<Promise<{ ok: boolean; path?: string }>> = [
     uploadFile("student-documents", `resumes/${registrationId}.${resumeExt}`, {
       buffer: resumeBuf,
       mimeType: resume.type,
     }),
-    uploadFile("student-documents", `photos/${registrationId}.${photoExt}`, {
-      buffer: photoBuf,
-      mimeType: photo.type,
-    }),
-  ]);
+  ];
+  if (hasPhoto && photoBuf) {
+    const photoExt = photo!.name.split(".").pop()?.toLowerCase() ?? "jpg";
+    uploadTasks.push(
+      uploadFile("student-documents", `photos/${registrationId}.${photoExt}`, {
+        buffer: photoBuf,
+        mimeType: photo!.type,
+      })
+    );
+  }
+  const ups = await Promise.all(uploadTasks);
+  const resumeUp = ups[0];
+  const photoUp = hasPhoto ? ups[1] : undefined;
 
-  if (resumeUp.ok && photoUp.ok) {
+  if (resumeUp.ok) {
     await prisma.student.update({
       where: { id: studentId },
-      data: { resumeUrl: resumeUp.path, passportPhoto: photoUp.path },
+      data: {
+        resumeUrl: resumeUp.path,
+        passportPhoto: photoUp?.ok ? photoUp.path : null,
+      },
     });
   }
 
