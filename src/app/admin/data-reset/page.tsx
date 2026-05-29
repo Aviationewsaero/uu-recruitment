@@ -69,7 +69,16 @@ export default async function DataResetPage() {
           <li>Resume + photo files in Supabase Storage are NOT deleted (they orphan).</li>
         </ul>
         <div className="mt-5">
-          <ResetPanel />
+          <ResetPanel
+            counts={{
+              students,
+              tokens,
+              interviews,
+              emails,
+              audits,
+              lastToken,
+            }}
+          />
         </div>
       </section>
 
