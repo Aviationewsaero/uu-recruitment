@@ -34,7 +34,19 @@ export const UPLOAD_LIMITS = {
     ],
   },
   photo: {
-    maxBytes: 2 * 1024 * 1024, // 2MB
-    mimeTypes: ["image/jpeg", "image/png", "image/webp"],
+    // Bumped from 2 MB to 8 MB. Client-side compression aims for ~150 KB,
+    // but on phones where compression failed/timed out we still want the
+    // original to land rather than blocking the student. 8 MB covers a
+    // 12MP iPhone JPEG with comfortable headroom.
+    maxBytes: 8 * 1024 * 1024,
+    // Accept HEIC/HEIF too - if the client compressor couldn't decode it,
+    // the file lands as-is and a recruiter can convert later if needed.
+    mimeTypes: [
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+      "image/heic",
+      "image/heif",
+    ],
   },
 } as const;

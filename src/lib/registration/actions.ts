@@ -182,11 +182,17 @@ async function submitRegistrationInner(
   if (resume.size > UPLOAD_LIMITS.resume.maxBytes)
     return { ok: false, error: "Resume exceeds 5MB" };
   if (photo.size > UPLOAD_LIMITS.photo.maxBytes)
-    return { ok: false, error: "Photo exceeds 2MB" };
+    return {
+      ok: false,
+      error: `Photo too large (${(photo.size / 1024 / 1024).toFixed(1)} MB). Try a smaller image or use Gallery instead of Camera.`,
+    };
   if (!UPLOAD_LIMITS.resume.mimeTypes.includes(resume.type as never))
     return { ok: false, error: "Resume must be PDF or DOCX" };
   if (!UPLOAD_LIMITS.photo.mimeTypes.includes(photo.type as never))
-    return { ok: false, error: "Photo must be JPEG, PNG, or WebP" };
+    return {
+      ok: false,
+      error: `Photo format not supported (${photo.type || "unknown"}). Please pick a JPG or PNG from your gallery.`,
+    };
 
   // 3. Race-check email uniqueness one more time
   if (await prisma.student.findUnique({ where: { email } })) {

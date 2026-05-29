@@ -1,21 +1,18 @@
 "use client";
 
 // Two-mode photo input: pick from gallery OR launch rear camera.
-// On selection we IMMEDIATELY compress (HEIC -> JPEG, resize to 800px,
-// q=0.7) and show a thumbnail preview + before/after file size. The
-// student sees confirmation that their photo is ready BEFORE they tap
-// submit, instead of crossing their fingers and hoping it worked.
-//
-// The compressed File is bubbled to the parent form via onChange. We do
-// NOT use a hidden DOM input + DataTransfer because iOS Safari silently
-// rejects `input.files = ...` assignment, which would block submit.
+// Compresses + previews before submit. Defensive:
+//  - 12-second per-step timeout in compressImage; on failure we
+//    pass through the original file with a clear warning so the
+//    student is never stuck on a spinner.
+//  - "Use anyway" button if processing is taking long.
 
 import { useEffect, useRef, useState } from "react";
 import { compressImage, formatBytes, type CompressResult } from "@/lib/image-compress";
 
 type Status =
   | { kind: "idle" }
-  | { kind: "processing"; original: File }
+  | { kind: "processing"; original: File; startedAt: number }
   | { kind: "ready"; result: CompressResult; previewUrl: string }
   | { kind: "error"; message: string };
 
@@ -28,16 +25,23 @@ export function PhotoField({
   onChange: (file: File | null) => void;
 }) {
   const [status, setStatus] = useState<Status>({ kind: "idle" });
+  // Used by the "Use anyway" escape hatch when processing is slow.
+  const fallbackRef = useRef<File | null>(null);
+  // Tick counter so the "elapsed seconds" label re-renders during processing.
+  const [tick, setTick] = useState(0);
 
-  // Bubble the compressed File up to the parent form whenever it changes.
-  // Parent stores it in state and appends to FormData at submit time.
+  useEffect(() => {
+    if (status.kind !== "processing") return;
+    const id = setInterval(() => setTick((t) => t + 1), 1000);
+    return () => clearInterval(id);
+  }, [status.kind]);
+
   useEffect(() => {
     if (status.kind === "ready") onChange(status.result.file);
     else onChange(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status]);
 
-  // Clean up the previous preview URL when state changes
   useEffect(() => {
     return () => {
       if (status.kind === "ready") URL.revokeObjectURL(status.previewUrl);
@@ -46,25 +50,67 @@ export function PhotoField({
 
   async function handleFile(file: File | undefined) {
     if (!file) return;
-    setStatus({ kind: "processing", original: file });
+    fallbackRef.current = file;
+    setStatus({ kind: "processing", original: file, startedAt: Date.now() });
     try {
       const result = await compressImage(file);
       const previewUrl = URL.createObjectURL(result.file);
       setStatus({ kind: "ready", result, previewUrl });
     } catch (e) {
+      // compressImage shouldn't throw anymore, but if it does, fall back.
+      const message =
+        e instanceof Error ? e.message : "Could not process this photo.";
+      // eslint-disable-next-line no-console
+      console.error("[PhotoField] compress threw:", e);
+      const previewUrl = URL.createObjectURL(file);
       setStatus({
-        kind: "error",
-        message:
-          e instanceof Error
-            ? e.message
-            : "Could not process this photo. Try a different one.",
+        kind: "ready",
+        result: {
+          file,
+          beforeBytes: file.size,
+          afterBytes: file.size,
+          width: 0,
+          height: 0,
+          convertedFromHeic: false,
+          compressionSkipped: true,
+          skipReason: message,
+        },
+        previewUrl,
       });
     }
   }
 
+  function useOriginalAnyway() {
+    const f = fallbackRef.current;
+    if (!f) return;
+    const previewUrl = URL.createObjectURL(f);
+    setStatus({
+      kind: "ready",
+      result: {
+        file: f,
+        beforeBytes: f.size,
+        afterBytes: f.size,
+        width: 0,
+        height: 0,
+        convertedFromHeic: false,
+        compressionSkipped: true,
+        skipReason: "User chose to skip compression",
+      },
+      previewUrl,
+    });
+  }
+
   function reset() {
     setStatus({ kind: "idle" });
+    fallbackRef.current = null;
   }
+
+  const elapsed =
+    status.kind === "processing"
+      ? Math.floor((Date.now() - status.startedAt) / 1000)
+      : 0;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _tickKeeper = tick; // keep tick in closure so re-renders fire
 
   return (
     <div className="space-y-3">
@@ -87,22 +133,44 @@ export function PhotoField({
       )}
 
       {status.kind === "processing" && (
-        <div className="flex items-center gap-3 rounded-md border border-brand-border bg-brand-bg p-4">
-          <Spinner />
-          <div className="flex-1 text-sm">
-            <p className="font-semibold text-brand-text">
-              Processing photo&hellip;
-            </p>
-            <p className="text-xs text-brand-muted">
-              {status.original.name} &middot; {formatBytes(status.original.size)} &middot;
-              compressing for upload
-            </p>
+        <div className="rounded-md border border-brand-border bg-brand-bg p-4 space-y-3">
+          <div className="flex items-center gap-3">
+            <Spinner />
+            <div className="flex-1 text-sm">
+              <p className="font-semibold text-brand-text">
+                Processing photo&hellip; {elapsed > 0 && `(${elapsed}s)`}
+              </p>
+              <p className="text-xs text-brand-muted">
+                {status.original.name} &middot; {formatBytes(status.original.size)}
+              </p>
+            </div>
           </div>
+          {elapsed >= 8 && (
+            <div className="rounded border border-amber-300 bg-amber-50 p-3 text-xs space-y-2">
+              <p className="text-amber-900">
+                Taking longer than usual on this phone. You can wait, or use
+                the photo as-is (will upload at full size).
+              </p>
+              <button
+                type="button"
+                onClick={useOriginalAnyway}
+                className="rounded-md bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-700"
+              >
+                Use photo as-is
+              </button>
+            </div>
+          )}
         </div>
       )}
 
       {status.kind === "ready" && (
-        <div className="flex items-start gap-4 rounded-md border border-brand-green/40 bg-brand-green/5 p-4">
+        <div
+          className={`flex items-start gap-4 rounded-md border p-4 ${
+            status.result.compressionSkipped
+              ? "border-amber-300 bg-amber-50"
+              : "border-brand-green/40 bg-brand-green/5"
+          }`}
+        >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={status.previewUrl}
@@ -110,15 +178,26 @@ export function PhotoField({
             className="h-24 w-20 rounded border border-brand-border object-cover bg-white"
           />
           <div className="flex-1 text-sm">
-            <p className="font-semibold text-brand-green-dark">
+            <p
+              className={`font-semibold ${
+                status.result.compressionSkipped
+                  ? "text-amber-900"
+                  : "text-brand-green-dark"
+              }`}
+            >
               Photo ready &middot; {formatBytes(status.result.afterBytes)}
             </p>
-            <p className="mt-1 text-xs text-brand-muted">
-              {status.result.convertedFromHeic && "Converted from iPhone HEIC. "}
-              Resized to {status.result.width}&times;{status.result.height}px,
-              compressed from{" "}
-              {formatBytes(status.result.beforeBytes)}.
-            </p>
+            {status.result.compressionSkipped ? (
+              <p className="mt-1 text-xs text-amber-800">
+                Uploading original size. Submit should still work.
+              </p>
+            ) : (
+              <p className="mt-1 text-xs text-brand-muted">
+                {status.result.convertedFromHeic && "Converted from iPhone HEIC. "}
+                Resized to {status.result.width}&times;{status.result.height}px,
+                compressed from {formatBytes(status.result.beforeBytes)}.
+              </p>
+            )}
             <button
               type="button"
               onClick={reset}
@@ -197,20 +276,8 @@ function Spinner() {
       fill="none"
       aria-hidden="true"
     >
-      <circle
-        cx="12"
-        cy="12"
-        r="10"
-        stroke="currentColor"
-        strokeWidth="3"
-        opacity="0.25"
-      />
-      <path
-        d="M22 12a10 10 0 0 1-10 10"
-        stroke="currentColor"
-        strokeWidth="3"
-        strokeLinecap="round"
-      />
+      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" opacity="0.25" />
+      <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
     </svg>
   );
 }
