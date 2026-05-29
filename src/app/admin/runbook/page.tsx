@@ -2,6 +2,7 @@
 // /admin/runbook → File > Print → fits one A4 page.
 
 import { requireRole } from "@/lib/auth-user";
+import { fmtIstDateTime } from "@/lib/format";
 import { PrintButton } from "./PrintButton";
 
 export const dynamic = "force-dynamic";
@@ -135,7 +136,7 @@ export default async function RunbookPage() {
 
         <footer className="mt-6 pt-3 border-t border-brand-border text-xs text-brand-muted text-center">
           Printed from /admin/runbook on{" "}
-          {new Date().toLocaleString("en-IN")} · Keep at desk
+          {fmtIstDateTime(new Date())} IST · Keep at desk
         </footer>
       </article>
     </div>

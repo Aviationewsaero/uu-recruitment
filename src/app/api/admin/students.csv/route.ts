@@ -62,7 +62,20 @@ export async function GET(req: Request) {
       COLUMNS.map((c) => {
         if (c.key === "tokenNumber") return csvEscape(s.token?.tokenNumber);
         if (c.key === "createdAt")
-          return csvEscape(s.createdAt.toISOString());
+          // IST-formatted so the CSV is human-readable when opened in
+          // Excel/Sheets without operators mentally converting from UTC.
+          return csvEscape(
+            s.createdAt.toLocaleString("en-IN", {
+              timeZone: "Asia/Kolkata",
+              year: "numeric",
+              month: "2-digit",
+              day: "2-digit",
+              hour: "2-digit",
+              minute: "2-digit",
+              second: "2-digit",
+              hour12: false,
+            }) + " IST"
+          );
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return csvEscape((s as any)[c.key]);
       }).join(",")

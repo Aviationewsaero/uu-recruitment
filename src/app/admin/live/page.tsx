@@ -7,6 +7,7 @@
 
 import { requireRole } from "@/lib/auth-user";
 import { prisma } from "@/lib/prisma";
+import { fmtIstTime, fmtIstTimeWithSeconds } from "@/lib/format";
 import { LiveRefresh } from "./LiveRefresh";
 
 export const dynamic = "force-dynamic";
@@ -116,7 +117,7 @@ export default async function LivePage() {
         </div>
         <p className="text-xs text-brand-muted">
           Auto-refresh every 10s · last fetch{" "}
-          {now.toLocaleTimeString("en-IN")}
+          {fmtIstTimeWithSeconds(now)} IST
         </p>
       </header>
 
@@ -266,7 +267,7 @@ export default async function LivePage() {
             <ul className="mt-2 space-y-0.5 text-xs text-brand-text max-h-24 overflow-y-auto">
               {failedLogins.slice(0, 5).map((f, i) => (
                 <li key={i} className="font-mono">
-                  {f.createdAt.toLocaleTimeString("en-IN")} — {f.target}{" "}
+                  {fmtIstTime(f.createdAt)} — {f.target}{" "}
                   {(f.payload as { reason?: string } | null)?.reason
                     ? `(${(f.payload as { reason: string }).reason})`
                     : ""}
@@ -302,7 +303,7 @@ export default async function LivePage() {
               recentAudit.map((a, i) => (
                 <li key={i} className="flex items-center gap-3 px-4 py-2 text-xs">
                   <span className="font-mono text-brand-muted tabular-nums">
-                    {a.createdAt.toLocaleTimeString("en-IN")}
+                    {fmtIstTime(a.createdAt)}
                   </span>
                   <span
                     className={`inline-block rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${

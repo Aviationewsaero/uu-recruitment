@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { requireRole } from "@/lib/auth-user";
 import { prisma } from "@/lib/prisma";
 import { getFileUrl } from "@/lib/storage";
+import { fmtIstDateTime } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -170,7 +171,7 @@ export default async function StudentDetailPage({ params }: PageProps) {
                     >
                       {e.status.toLowerCase()}
                     </span>{" "}
-                    · {new Date(e.createdAt).toLocaleString("en-IN")}
+                    · {fmtIstDateTime(e.createdAt)} IST
                   </p>
                 </li>
               ))}

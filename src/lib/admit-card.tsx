@@ -129,7 +129,7 @@ function AdmitCard({ data }: { data: AdmitCardData }) {
 
         <View style={styles.footer}>
           <Text>aviation@ews.aero · www.ews.aero</Text>
-          <Text>Issued: {new Date().toLocaleDateString("en-IN")}</Text>
+          <Text>Issued: {new Date().toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", day: "2-digit", month: "short", year: "numeric" })} IST</Text>
         </View>
       </Page>
     </Document>

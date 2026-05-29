@@ -1,5 +1,6 @@
 import { requireRole } from "@/lib/auth-user";
 import { prisma } from "@/lib/prisma";
+import { fmtIstDateTime } from "@/lib/format";
 import { BulkEmailComposer } from "./BulkEmailComposer";
 
 export const dynamic = "force-dynamic";
@@ -45,7 +46,7 @@ export default async function BulkEmailPage() {
                 <p className="font-medium">{e.subject}</p>
                 <p className="text-xs text-brand-muted">
                   to {e.toEmail} · {e.status.toLowerCase()} ·{" "}
-                  {new Date(e.createdAt).toLocaleString("en-IN")}
+                  {fmtIstDateTime(e.createdAt)} IST
                 </p>
               </li>
             ))}

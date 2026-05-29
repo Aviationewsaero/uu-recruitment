@@ -133,6 +133,7 @@ export default async function StudentsPage({ searchParams }: PageProps) {
                   </td>
                   <td className="px-4 py-3 text-right text-xs text-brand-muted">
                     {new Date(s.createdAt).toLocaleString("en-IN", {
+                      timeZone: "Asia/Kolkata",
                       day: "2-digit",
                       month: "short",
                       hour: "2-digit",

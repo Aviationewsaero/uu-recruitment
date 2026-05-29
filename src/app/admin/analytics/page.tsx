@@ -82,6 +82,7 @@ export default async function AnalyticsPage() {
         <BarChart
           data={hourlyRegs.map((r) => ({
             label: new Date(r.hour).toLocaleTimeString("en-IN", {
+              timeZone: "Asia/Kolkata",
               hour: "2-digit",
               hour12: false,
             }),
