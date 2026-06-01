@@ -221,14 +221,15 @@ const CATEGORY = {
   },
 } as const;
 
+// Mirrors prisma enum InterviewStatus (Student.status). "PENDING" is the
+// default for a student who registered but hasn't had a decision yet.
 type Status =
-  | "SELECTED"
+  | "PENDING"
   | "SHORTLISTED"
+  | "REJECTED"
   | "HOLD"
   | "RE_INTERVIEW"
-  | "REJECTED"
-  | "REGISTERED"
-  | "NO_SHOW";
+  | "SELECTED";
 
 function statusToCategory(s: Status): keyof typeof CATEGORY {
   // SELECTED + SHORTLISTED collapse into a single public bucket - this

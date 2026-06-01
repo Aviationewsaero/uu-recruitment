@@ -23,7 +23,7 @@ export default async function StatusReportPage() {
         where: { status: { in: ["HOLD", "RE_INTERVIEW"] } },
       }),
       prisma.student.count({ where: { status: "REJECTED" } }),
-      prisma.student.count({ where: { status: "REGISTERED" } }),
+      prisma.student.count({ where: { status: "PENDING" } }),
     ]);
 
   const today = fmtIstDate(new Date());
