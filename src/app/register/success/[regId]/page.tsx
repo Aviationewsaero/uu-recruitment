@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import crypto from "node:crypto";
@@ -5,6 +6,11 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth-user";
 
 export const dynamic = "force-dynamic";
+
+// Per-student success page contains PII and is token-gated. Never index.
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
 type PageProps = {
   params: Promise<{ regId: string }>;

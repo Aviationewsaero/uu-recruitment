@@ -1,7 +1,14 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { headers } from "next/headers";
 import { getCurrentUser } from "@/lib/auth-user";
 import { logoutAction } from "@/lib/admin/actions";
+
+// Admin console must never be indexed by search engines, even though
+// the root layout now allows indexing for the public careers landing.
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
 const NAV: { href: string; label: string; roles: string[] }[] = [
   { href: "/admin/live", label: "Live Monitor", roles: ["SUPER_ADMIN"] },

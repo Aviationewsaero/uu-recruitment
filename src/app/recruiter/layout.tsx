@@ -1,7 +1,13 @@
+import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { getCurrentUser } from "@/lib/auth-user";
 import { logoutAction } from "@/lib/admin/actions";
 import { prisma } from "@/lib/prisma";
+
+// Recruiter console is private - never index.
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
 export default async function RecruiterLayout({
   children,

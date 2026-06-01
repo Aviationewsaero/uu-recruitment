@@ -3,10 +3,17 @@ import { Toaster } from "sonner";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Uttaranchal Aviation Recruitment 2026",
+  metadataBase: new URL("https://careers.ews.aero"),
+  title: {
+    default: "Elite World Services · Aviation Careers",
+    template: "%s · EWS Aviation Careers",
+  },
   description:
-    "Official campus recruitment portal for aviation industry roles at Uttaranchal University. Powered by Elite World Services.",
-  robots: { index: false, follow: false }, // private portal — keep out of search
+    "Aviation careers across India's airport network. Direct hiring, paid internships, and campus recruitment partnerships with universities and corporates.",
+  // Default: PUBLIC pages (landing, drives, jobs) are indexable. Private
+  // routes (/admin, /recruiter, /register/success, /api/admit-card) set
+  // noindex locally via their own metadata.
+  robots: { index: true, follow: true },
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -14,6 +21,14 @@ export const metadata: Metadata = {
     title: "EWS Aviation",
   },
   formatDetection: { telephone: false, email: false, address: false },
+  openGraph: {
+    title: "Elite World Services · Aviation Careers",
+    description:
+      "Aviation careers across India's airport network. Direct hiring, paid internships, and campus recruitment partnerships.",
+    type: "website",
+    url: "https://careers.ews.aero",
+    siteName: "EWS Aviation Careers",
+  },
 };
 
 // Mobile: lock zoom, fit notch, theme the address bar.
