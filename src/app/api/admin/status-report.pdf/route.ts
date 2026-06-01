@@ -1,12 +1,11 @@
-// Generates and streams the Student Status Report PDF.
-// SUPER_ADMIN gated. Accepts optional ?driveDate=, ?driveTitle=, ?notes=
-// query params so the operator can customise the cover sheet from the
-// admin form. Defaults to sensible values if not provided.
+// Generates and streams the Student Status Report PDF (v2).
+// SUPER_ADMIN gated. Accepts optional ?driveDate= ?driveTitle= ?university=
+// ?notes= query params so the operator can customise the cover sheet.
 
 import { NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth-user";
 import { prisma } from "@/lib/prisma";
-import { fmtIstDate, fmtIstDateTime } from "@/lib/format";
+import { fmtIstDate, fmtIstDateTime, fmtIstTime } from "@/lib/format";
 import {
   renderStatusReportPdf,
   type StatusReportStudent,
@@ -29,12 +28,23 @@ export async function GET(req: Request) {
     url.searchParams.get("university")?.trim() || DEFAULT_UNIVERSITY;
   const notes = url.searchParams.get("notes")?.trim() || undefined;
 
-  // Pull every student with their token + status. ORDER BY tokenNumber so
-  // each category section is naturally chronological by registration.
-  const students = await prisma.student.findMany({
-    orderBy: { createdAt: "asc" },
-    include: { token: { select: { tokenNumber: true } } },
-  });
+  const [students, window] = await Promise.all([
+    prisma.student.findMany({
+      orderBy: { createdAt: "asc" },
+      include: { token: { select: { tokenNumber: true } } },
+    }),
+    // Auto-compute "drive window" - earliest to latest registration. Gives
+    // the cover-sheet a real start/end time without the operator typing.
+    prisma.student.aggregate({
+      _min: { createdAt: true },
+      _max: { createdAt: true },
+    }),
+  ]);
+
+  let driveWindow: string | undefined = undefined;
+  if (window._min.createdAt && window._max.createdAt) {
+    driveWindow = `${fmtIstTime(window._min.createdAt)} - ${fmtIstTime(window._max.createdAt)} IST`;
+  }
 
   const payload: StatusReportStudent[] = students.map((s) => ({
     tokenNumber: s.token?.tokenNumber ?? null,
@@ -57,6 +67,7 @@ export async function GET(req: Request) {
     generatedAt: fmtIstDateTime(new Date()) + " IST",
     generatedBy: me.email,
     notes,
+    driveWindow,
     students: payload,
   });
 
