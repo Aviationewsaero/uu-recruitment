@@ -13,7 +13,7 @@ export default async function StatusReportPage() {
   await requireRole("SUPER_ADMIN");
 
   // Snapshot live counts so the operator sees what the PDF will contain.
-  const [total, advanced, underReview, notShortlisted, pending] =
+  const [total, advanced, underReview, notShortlisted, pending, earliest] =
     await Promise.all([
       prisma.student.count(),
       prisma.student.count({
@@ -24,9 +24,15 @@ export default async function StatusReportPage() {
       }),
       prisma.student.count({ where: { status: "REJECTED" } }),
       prisma.student.count({ where: { status: "PENDING" } }),
+      prisma.student.aggregate({ _min: { createdAt: true } }),
     ]);
 
-  const today = fmtIstDate(new Date());
+  // Pre-fill the date form field with the actual drive day (day the
+  // first student registered) rather than the day the operator opens
+  // the page. They can still override.
+  const today = earliest._min.createdAt
+    ? fmtIstDate(earliest._min.createdAt)
+    : fmtIstDate(new Date());
 
   return (
     <div className="p-8 max-w-3xl mx-auto space-y-6">

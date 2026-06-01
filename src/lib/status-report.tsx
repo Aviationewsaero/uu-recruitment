@@ -373,34 +373,35 @@ function StatusReportDoc({ input }: { input: StatusReportInput }) {
 
         <View style={styles.accentBar} />
 
-        {/* Meta */}
+        {/* Meta - date and window paired in the same cell so they always
+            read together. Report reference next to host institution. */}
         <View style={styles.metaGrid}>
           <View style={styles.metaCell}>
             <Text style={styles.metaLabel}>HOST INSTITUTION</Text>
             <Text style={styles.metaValue}>{input.universityName}</Text>
           </View>
           <View style={styles.metaCell}>
-            <Text style={styles.metaLabel}>DRIVE DATE</Text>
-            <Text style={styles.metaValue}>{input.driveDate}</Text>
-          </View>
-          <View style={styles.metaCell}>
-            <Text style={styles.metaLabel}>STUDENTS PARTICIPATED</Text>
-            <Text style={styles.metaValue}>{total.toLocaleString()}</Text>
-          </View>
-          <View style={styles.metaCell}>
-            <Text style={styles.metaLabel}>INTERVIEWS COMPLETED</Text>
-            <Text style={styles.metaValue}>{interviewed.toLocaleString()}</Text>
-          </View>
-          {input.driveWindow && (
-            <View style={styles.metaCell}>
-              <Text style={styles.metaLabel}>DRIVE WINDOW</Text>
-              <Text style={styles.metaValue}>{input.driveWindow}</Text>
-            </View>
-          )}
-          <View style={styles.metaCell}>
             <Text style={styles.metaLabel}>REPORT REFERENCE</Text>
             <Text style={styles.metaValue}>
               EWS/SR/{new Date().toISOString().slice(0, 10)}
+            </Text>
+          </View>
+          <View style={styles.metaCell}>
+            <Text style={styles.metaLabel}>DRIVE DATE & WINDOW</Text>
+            <Text style={styles.metaValue}>{input.driveDate}</Text>
+            {input.driveWindow && (
+              <Text style={[styles.metaValue, { fontSize: 9.5, color: MUTED, marginTop: 1 }]}>
+                {input.driveWindow}
+              </Text>
+            )}
+          </View>
+          <View style={styles.metaCell}>
+            <Text style={styles.metaLabel}>STUDENTS PARTICIPATED</Text>
+            <Text style={styles.metaValue}>
+              {total.toLocaleString()}{" "}
+              <Text style={{ fontSize: 9, color: MUTED }}>
+                ({interviewed.toLocaleString()} interviewed)
+              </Text>
             </Text>
           </View>
         </View>

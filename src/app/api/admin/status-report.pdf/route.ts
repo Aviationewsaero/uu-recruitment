@@ -20,8 +20,6 @@ export async function GET(req: Request) {
   const me = await requireRole("SUPER_ADMIN");
   const url = new URL(req.url);
 
-  const driveDate =
-    url.searchParams.get("driveDate")?.trim() || fmtIstDate(new Date());
   const driveTitle =
     url.searchParams.get("driveTitle")?.trim() || DEFAULT_TITLE;
   const universityName =
@@ -40,6 +38,15 @@ export async function GET(req: Request) {
       _max: { createdAt: true },
     }),
   ]);
+
+  // Default the drive DATE to the day the first student registered (which
+  // is the actual drive day) instead of the day the operator generates the
+  // PDF. Operator override via ?driveDate= still wins.
+  const driveDate =
+    url.searchParams.get("driveDate")?.trim() ||
+    (window._min.createdAt
+      ? fmtIstDate(window._min.createdAt)
+      : fmtIstDate(new Date()));
 
   let driveWindow: string | undefined = undefined;
   if (window._min.createdAt && window._max.createdAt) {
