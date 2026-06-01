@@ -133,6 +133,95 @@ export async function deleteTokenRangeAction(raw: unknown): Promise<RangeResult>
 }
 // ─── End token-range delete ───────────────────────────────────────────────
 
+// ─── Selective per-student delete ─────────────────────────────────────────
+// Operator ticks specific student rows in the UI then submits the array
+// of selected IDs. Same cascade as the range delete (student + token +
+// interview + email log). Token sequence is NOT reset.
+
+const idsSchema = z.object({
+  studentIds: z.array(z.string().trim().min(1)).min(1, "Pick at least one student"),
+});
+
+export async function deleteStudentsByIdsAction(raw: unknown): Promise<RangeResult> {
+  const me = await requireRole("SUPER_ADMIN");
+  const parsed = idsSchema.safeParse(raw);
+  if (!parsed.success)
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+
+  const studentIds = parsed.data.studentIds;
+
+  try {
+    // Look up matching tokens for the FK cleanup
+    const tokens = await prisma.token.findMany({
+      where: { studentId: { in: studentIds } },
+      select: { id: true },
+    });
+    const tokenIds = tokens.map((t) => t.id as string);
+
+    if (tokenIds.length > 0) {
+      await prisma.room.updateMany({
+        where: { currentTokenId: { in: tokenIds } },
+        data: { currentTokenId: null },
+      });
+    }
+
+    const tokensDel = await prisma.token.deleteMany({
+      where: { studentId: { in: studentIds } },
+    });
+    const interviewsDel = await prisma.interviewLog.deleteMany({
+      where: { studentId: { in: studentIds } },
+    });
+    const emailsDel = await prisma.emailLog.deleteMany({
+      where: { studentId: { in: studentIds } },
+    });
+    const studentsDel = await prisma.student.deleteMany({
+      where: { id: { in: studentIds } },
+    });
+
+    await prisma.auditLog
+      .create({
+        data: {
+          actorId: me.userId,
+          action: "drive.purge_selected",
+          target: `${studentIds.length} students`,
+          payload: {
+            count: studentIds.length,
+            studentsDeleted: studentsDel.count,
+            tokensDeleted: tokensDel.count,
+            interviewsDeleted: interviewsDel.count,
+            emailsDeleted: emailsDel.count,
+          },
+        },
+      })
+      .catch(() => undefined);
+
+    revalidatePath("/admin");
+    revalidatePath("/admin/queue");
+    revalidatePath("/admin/students");
+    revalidatePath("/admin/analytics");
+    revalidatePath("/admin/data-reset");
+    revalidatePath("/admin/status-report");
+    revalidatePath("/admin/live");
+    revalidatePath("/display");
+
+    return {
+      ok: true,
+      studentsDeleted: studentsDel.count,
+      tokensDeleted: tokensDel.count,
+      interviewsDeleted: interviewsDel.count,
+      emailsDeleted: emailsDel.count,
+    };
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.error("[deleteStudentsByIdsAction] failed:", e);
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : "Delete failed",
+    };
+  }
+}
+// ─── End selective per-student delete ────────────────────────────────────
+
 
 // Each flag toggles one category of purge. Defaults to false so the
 // caller must opt-in explicitly per box. The action returns per-category

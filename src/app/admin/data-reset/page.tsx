@@ -10,13 +10,24 @@ import { requireRole } from "@/lib/auth-user";
 import { prisma } from "@/lib/prisma";
 import { ResetPanel } from "./ResetPanel";
 import { RangePanel } from "./RangePanel";
+import { SelectivePanel, type SelectableStudent } from "./SelectivePanel";
 
 export const dynamic = "force-dynamic";
 
 export default async function DataResetPage() {
   await requireRole("SUPER_ADMIN");
 
-  const [students, tokens, interviews, emails, audits, rooms, users, nextToken] = await Promise.all([
+  const [
+    students,
+    tokens,
+    interviews,
+    emails,
+    audits,
+    rooms,
+    users,
+    nextToken,
+    allStudents,
+  ] = await Promise.all([
     prisma.student.count(),
     prisma.token.count(),
     prisma.interviewLog.count(),
@@ -25,9 +36,28 @@ export default async function DataResetPage() {
     prisma.room.count(),
     prisma.user.count(),
     prisma.token.aggregate({ _max: { tokenNumber: true } }),
+    // Full list for the per-student selective panel. Ordered by token #
+    // so the cleanup operator sees the same sequence as in the report.
+    prisma.student.findMany({
+      orderBy: { createdAt: "asc" },
+      include: { token: { select: { tokenNumber: true } } },
+    }),
   ]);
 
   const lastToken = nextToken._max.tokenNumber ?? 0;
+
+  const selectableStudents: SelectableStudent[] = allStudents.map((s) => ({
+    id: s.id as string,
+    tokenNumber: s.token?.tokenNumber ?? null,
+    registrationId: s.registrationId,
+    fullName: s.fullName,
+    phone: s.phone,
+    status: s.status as string,
+    course:
+      s.course === "Other"
+        ? s.customCourse ?? "Other"
+        : `${s.course}${s.semester ? ` · ${s.semester}` : ""}`,
+  }));
 
   return (
     <div className="p-8 max-w-3xl mx-auto space-y-8">
@@ -80,6 +110,21 @@ export default async function DataResetPage() {
               lastToken,
             }}
           />
+        </div>
+      </section>
+
+      <section className="rounded-lg border border-red-200 bg-red-50 p-6">
+        <h2 className="text-sm font-semibold uppercase tracking-widest text-red-900">
+          Pick-and-choose delete
+        </h2>
+        <p className="mt-2 text-sm text-red-900">
+          Most precise option. Search, tick the specific students you want
+          to remove, then confirm. Useful when test entries are scattered
+          across the token range (some real, some test) and you need to
+          cherry-pick.
+        </p>
+        <div className="mt-4">
+          <SelectivePanel students={selectableStudents} />
         </div>
       </section>
 
