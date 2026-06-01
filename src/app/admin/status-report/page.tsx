@@ -27,12 +27,12 @@ export default async function StatusReportPage() {
       prisma.student.aggregate({ _min: { createdAt: true } }),
     ]);
 
-  // Pre-fill the date form field with the actual drive day (day the
-  // first student registered) rather than the day the operator opens
-  // the page. They can still override.
-  const today = earliest._min.createdAt
-    ? fmtIstDate(earliest._min.createdAt)
-    : fmtIstDate(new Date());
+  // Pre-fill the date form field with the ACTUAL drive day. Hardcoded
+  // because the drive was on 29 May 2026 - this PDF gets generated later
+  // but must always show the drive day, never today. Operator can still
+  // type a different date in the form for future drives.
+  void earliest; // keep the query for potential future use
+  const today = "29 May 2026";
 
   return (
     <div className="p-8 max-w-3xl mx-auto space-y-6">

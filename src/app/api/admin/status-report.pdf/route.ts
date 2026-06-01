@@ -15,6 +15,9 @@ export const dynamic = "force-dynamic";
 
 const DEFAULT_TITLE = "UU Aviation Recruitment Drive 2026";
 const DEFAULT_UNIVERSITY = "Uttaranchal University, Dehradun";
+// The recruitment drive happened on this day. Report is published later
+// but the DATE shown must always be the drive day, never "today".
+const DRIVE_DATE = "29 May 2026";
 
 export async function GET(req: Request) {
   const me = await requireRole("SUPER_ADMIN");
@@ -39,14 +42,10 @@ export async function GET(req: Request) {
     }),
   ]);
 
-  // Default the drive DATE to the day the first student registered (which
-  // is the actual drive day) instead of the day the operator generates the
-  // PDF. Operator override via ?driveDate= still wins.
-  const driveDate =
-    url.searchParams.get("driveDate")?.trim() ||
-    (window._min.createdAt
-      ? fmtIstDate(window._min.createdAt)
-      : fmtIstDate(new Date()));
+  // Drive DATE is hardcoded to the actual day the drive was held.
+  // Generating the PDF on a different day does NOT change this. Operator
+  // can still override via ?driveDate= if a different drive happens later.
+  const driveDate = url.searchParams.get("driveDate")?.trim() || DRIVE_DATE;
 
   let driveWindow: string | undefined = undefined;
   if (window._min.createdAt && window._max.createdAt) {
