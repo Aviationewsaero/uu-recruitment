@@ -9,6 +9,7 @@
 import { requireRole } from "@/lib/auth-user";
 import { prisma } from "@/lib/prisma";
 import { ResetPanel } from "./ResetPanel";
+import { RangePanel } from "./RangePanel";
 
 export const dynamic = "force-dynamic";
 
@@ -82,9 +83,26 @@ export default async function DataResetPage() {
         </div>
       </section>
 
+      <section className="rounded-lg border border-amber-200 bg-amber-50 p-6">
+        <h2 className="text-sm font-semibold uppercase tracking-widest text-amber-900">
+          Surgical delete - by token range
+        </h2>
+        <p className="mt-2 text-sm text-amber-900">
+          Delete only the students whose token number falls in a specific
+          range. Use this to scrub leftover test entries before publishing
+          the status report (e.g. tokens 1-29 from earlier dry-runs). Token
+          sequence is left untouched - real students keep their original
+          numbers.
+        </p>
+        <div className="mt-4">
+          <RangePanel />
+        </div>
+      </section>
+
       <p className="text-xs text-brand-muted">
-        Use only before the first real student registers. Once the drive
-        starts, treat this page as read-only.
+        Use the &quot;wipe everything&quot; reset only before the first real
+        student registers. Once the drive starts, use the surgical range
+        delete above to scrub specific tokens.
       </p>
     </div>
   );

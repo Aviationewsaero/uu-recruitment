@@ -5,6 +5,135 @@ import { z } from "zod";
 import { requireRole } from "@/lib/auth-user";
 import { prisma } from "@/lib/prisma";
 
+// ─── Token-range delete ───────────────────────────────────────────────────
+// Used to scrub leftover test registrations before publishing reports.
+// Operator types the inclusive [minToken, maxToken] range; we look up
+// matching tokens, cascade-delete the student + interview logs + email
+// log rows tied to them. Token sequence is left untouched (no resequencing).
+
+const rangeSchema = z.object({
+  minToken: z.coerce.number().int().min(1),
+  maxToken: z.coerce.number().int().min(1),
+});
+
+type RangeResult =
+  | { ok: true; studentsDeleted: number; tokensDeleted: number; interviewsDeleted: number; emailsDeleted: number }
+  | { ok: false; error: string };
+
+/** Preview-only: count how many students would be deleted in [min, max]. */
+export async function previewTokenRangeAction(raw: unknown): Promise<
+  { ok: true; count: number } | { ok: false; error: string }
+> {
+  await requireRole("SUPER_ADMIN");
+  const parsed = rangeSchema.safeParse(raw);
+  if (!parsed.success) return { ok: false, error: "Invalid range" };
+  if (parsed.data.minToken > parsed.data.maxToken)
+    return { ok: false, error: "Min token must be <= max token" };
+
+  const count = await prisma.token.count({
+    where: {
+      tokenNumber: {
+        gte: parsed.data.minToken,
+        lte: parsed.data.maxToken,
+      },
+    },
+  });
+  return { ok: true, count };
+}
+
+export async function deleteTokenRangeAction(raw: unknown): Promise<RangeResult> {
+  const me = await requireRole("SUPER_ADMIN");
+  const parsed = rangeSchema.safeParse(raw);
+  if (!parsed.success) return { ok: false, error: "Invalid range" };
+  if (parsed.data.minToken > parsed.data.maxToken)
+    return { ok: false, error: "Min token must be <= max token" };
+
+  const { minToken, maxToken } = parsed.data;
+
+  try {
+    // Find matching tokens to extract their studentIds.
+    const tokens = await prisma.token.findMany({
+      where: { tokenNumber: { gte: minToken, lte: maxToken } },
+      select: { id: true, studentId: true },
+    });
+    const tokenIds = tokens.map((t) => t.id as string);
+    const studentIds = tokens.map((t) => t.studentId as string);
+
+    if (tokenIds.length === 0) {
+      return {
+        ok: true,
+        studentsDeleted: 0,
+        tokensDeleted: 0,
+        interviewsDeleted: 0,
+        emailsDeleted: 0,
+      };
+    }
+
+    // Clear room pointers first so token delete doesn't FK-fail.
+    await prisma.room.updateMany({
+      where: { currentTokenId: { in: tokenIds } },
+      data: { currentTokenId: null },
+    });
+
+    const tokensDel = await prisma.token.deleteMany({
+      where: { id: { in: tokenIds } },
+    });
+    const interviewsDel = await prisma.interviewLog.deleteMany({
+      where: { studentId: { in: studentIds } },
+    });
+    const emailsDel = await prisma.emailLog.deleteMany({
+      where: { studentId: { in: studentIds } },
+    });
+    const studentsDel = await prisma.student.deleteMany({
+      where: { id: { in: studentIds } },
+    });
+
+    await prisma.auditLog
+      .create({
+        data: {
+          actorId: me.userId,
+          action: "drive.purge_range",
+          target: `tokens ${minToken}-${maxToken}`,
+          payload: {
+            minToken,
+            maxToken,
+            studentsDeleted: studentsDel.count,
+            tokensDeleted: tokensDel.count,
+            interviewsDeleted: interviewsDel.count,
+            emailsDeleted: emailsDel.count,
+          },
+        },
+      })
+      .catch(() => undefined);
+
+    revalidatePath("/admin");
+    revalidatePath("/admin/queue");
+    revalidatePath("/admin/students");
+    revalidatePath("/admin/analytics");
+    revalidatePath("/admin/data-reset");
+    revalidatePath("/admin/status-report");
+    revalidatePath("/admin/live");
+    revalidatePath("/display");
+
+    return {
+      ok: true,
+      studentsDeleted: studentsDel.count,
+      tokensDeleted: tokensDel.count,
+      interviewsDeleted: interviewsDel.count,
+      emailsDeleted: emailsDel.count,
+    };
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.error("[deleteTokenRangeAction] failed:", e);
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : "Range delete failed",
+    };
+  }
+}
+// ─── End token-range delete ───────────────────────────────────────────────
+
+
 // Each flag toggles one category of purge. Defaults to false so the
 // caller must opt-in explicitly per box. The action returns per-category
 // counts so the UI can show what actually happened.
