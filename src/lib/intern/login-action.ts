@@ -73,4 +73,8 @@ export async function loginInternAction(email: string, password: string) {
 
   // redirect() must live outside try/catch — Next.js uses throw internally
   if (shouldRedirect) redirect("/intern/dashboard");
+
+  // TypeScript: redirect() always throws but TS doesn't model that.
+  // This line is unreachable; it only exists to satisfy the return type.
+  return { success: false, error: "" };
 }
