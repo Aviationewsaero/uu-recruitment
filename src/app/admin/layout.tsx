@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth-user";
 import { logoutAction } from "@/lib/admin/actions";
 
@@ -39,7 +40,7 @@ export default async function AdminLayout({
   if (pathname.endsWith("/login")) return <>{children}</>;
 
   const user = await getCurrentUser();
-  if (!user) return <>{children}</>;
+  if (!user) redirect("/admin/login");
 
   return (
     <div className="flex min-h-screen">
