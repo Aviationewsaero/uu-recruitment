@@ -63,9 +63,9 @@ export async function createMaterialAction(formData: FormData) {
       // Read file as buffer
       const buffer = await file.arrayBuffer();
 
-      // Upload to Supabase
-      const fileName = `${material.id}/${slideNumber}.${file.type.split("/")[1] || "png"}`;
-      const path = `study-materials/${fileName}`;
+      // Upload to Supabase — path is relative inside the "study-materials" bucket
+      const ext = file.type.split("/")[1] || "png";
+      const path = `${material.id}/${slideNumber}.${ext}`;
 
       const { error: uploadError } = await supabase.storage
         .from("study-materials")

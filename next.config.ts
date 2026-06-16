@@ -21,6 +21,11 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // Allow server actions to receive large file uploads (slide images).
+  serverActions: {
+    bodySizeLimit: "20mb",
+  },
+
   // Heavy native/CJS deps that shouldn't be bundled by Next — required by
   // Prisma adapter + bcryptjs + pdf renderer for cold-start performance.
   serverExternalPackages: [
