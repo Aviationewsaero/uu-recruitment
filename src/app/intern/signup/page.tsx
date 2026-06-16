@@ -13,7 +13,7 @@ export default function InternSignupPage() {
       <div className="mx-auto max-w-3xl px-6">
         <header className="mb-8">
           <p className="text-xs uppercase tracking-widest text-brand-muted">
-            Uttaranchal University Aviation Internship
+            Elite World Services Ltd
           </p>
           <h1 className="mt-1 text-3xl font-bold text-brand-text">
             Internship Portal Signup

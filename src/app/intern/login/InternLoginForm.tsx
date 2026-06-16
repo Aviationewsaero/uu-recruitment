@@ -38,7 +38,7 @@ export function InternLoginForm({ reason }: { reason: string | null }) {
     <div className="w-full max-w-md rounded-xl border border-brand-border bg-brand-surface p-8 shadow-lg">
       <header className="mb-6 text-center">
         <p className="text-xs uppercase tracking-widest text-brand-muted">
-          Uttaranchal University Aviation
+          Elite World Services Ltd
         </p>
         <h1 className="mt-2 text-2xl font-bold text-brand-text">Intern Portal</h1>
         <p className="mt-1 text-sm text-brand-muted">Log in to your account</p>

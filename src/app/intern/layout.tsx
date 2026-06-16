@@ -1,8 +1,8 @@
 import React from "react";
 
 export const metadata = {
-  title: "Intern Portal - UU Aviation",
-  description: "Uttaranchal University Aviation Internship Portal",
+  title: "Intern Portal - Elite World Services",
+  description: "Elite World Services Ltd Internship Portal",
 };
 
 export default function InternLayout({
