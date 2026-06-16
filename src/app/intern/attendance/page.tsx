@@ -27,6 +27,7 @@ export default async function AttendancePage() {
     orderBy: { date: "desc" },
   });
 
+  const totalSessions = await prisma.internAttendance.count({ where: { internId: intern.id } });
   const daysPresent = attendance.length;
   const daysInMonth = Math.floor((monthEnd.getTime() - monthStart.getTime()) / (1000 * 60 * 60 * 24));
   const attendance_pct = daysInMonth > 0 ? Math.round((daysPresent / daysInMonth) * 100) : 0;
@@ -73,9 +74,7 @@ export default async function AttendancePage() {
                 Total Sessions
               </p>
               <div className="mt-2">
-                <p className="text-2xl font-bold text-brand-text">
-                  {Math.floor(await prisma.internAttendance.count({ where: { internId: intern.id } }))}
-                </p>
+                <p className="text-2xl font-bold text-brand-text">{totalSessions}</p>
               </div>
             </div>
           </div>

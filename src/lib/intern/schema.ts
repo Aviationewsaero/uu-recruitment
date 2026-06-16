@@ -30,6 +30,18 @@ export const otpVerificationSchema = z.object({
 });
 export type OtpVerificationValues = z.infer<typeof otpVerificationSchema>;
 
+// Step 2.5: Password creation
+export const passwordSchema = z
+  .object({
+    password: z.string().min(8, "Password must be at least 8 characters"),
+    confirmPassword: z.string().min(1, "Please confirm your password"),
+  })
+  .refine((d) => d.password === d.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
+export type PasswordValues = z.infer<typeof passwordSchema>;
+
 // Step 3: Personal details
 export const personalDetailsSchema = z.object({
   fullName: z.string().min(2, "Name too short").max(255),

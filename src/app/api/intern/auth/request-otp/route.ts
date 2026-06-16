@@ -103,7 +103,7 @@ export async function POST(req: NextRequest) {
     await resend.emails.send({
       from: "noreply@ews.aero",
       to: email,
-      subject: "Your UU Aviation Internship Portal - Verification Code",
+      subject: "Your Elite World Services Internship Portal - Verification Code",
       html: `
         <h2>Email Verification</h2>
         <p>Your one-time verification code is:</p>

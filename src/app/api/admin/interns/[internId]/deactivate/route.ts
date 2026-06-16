@@ -34,9 +34,9 @@ export async function POST(
     const resend = new Resend(process.env.RESEND_API_KEY);
 
     await resend.emails.send({
-      from: "noreply@uu-recruitment.ews.aero",
+      from: "noreply@ews.aero",
       to: intern.personalEmail,
-      subject: "Your UU Aviation Internship Portal Access Deactivated",
+      subject: "Your Elite World Services Internship Portal Access Has Been Deactivated",
       html: `
         <h2>Account Deactivated</h2>
         <p>Hi ${intern.fullName},</p>

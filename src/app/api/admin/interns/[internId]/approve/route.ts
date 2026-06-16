@@ -34,13 +34,13 @@ export async function POST(
     const resend = new Resend(process.env.RESEND_API_KEY);
 
     await resend.emails.send({
-      from: "noreply@uu-recruitment.ews.aero",
+      from: "noreply@ews.aero",
       to: intern.personalEmail,
-      subject: "Your UU Aviation Internship Portal Account Approved",
+      subject: "Your Elite World Services Internship Portal Account Has Been Approved",
       html: `
         <h2>Account Approved!</h2>
         <p>Hi ${intern.fullName},</p>
-        <p>Your internship portal account has been approved by an admin. You now have full access to:</p>
+        <p>Your internship portal account has been approved. You now have full access to:</p>
         <ul>
           <li>Study materials and modules</li>
           <li>Progress tracking</li>

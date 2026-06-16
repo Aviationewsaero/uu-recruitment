@@ -17,6 +17,7 @@ import {
 import {
   emailVerificationSchema,
   otpVerificationSchema,
+  passwordSchema,
   personalDetailsSchema,
   universityDetailsSchema,
   emergencyDetailsSchema,
@@ -31,7 +32,7 @@ import {
   submitInternSignupAction,
 } from "@/lib/intern/actions";
 
-type Step = "email" | "otp" | "personal" | "university" | "emergency" | "confirm";
+type Step = "email" | "otp" | "password" | "personal" | "university" | "emergency" | "confirm";
 
 export function InternSignupFlow() {
   const [step, setStep] = useState<Step>("email");
@@ -45,6 +46,11 @@ export function InternSignupFlow() {
   };
 
   const handleOtpVerified = () => {
+    setStep("password");
+  };
+
+  const handlePasswordNext = (data: any) => {
+    setFormData((prev) => ({ ...prev, ...data }));
     setStep("personal");
   };
 
@@ -78,10 +84,16 @@ export function InternSignupFlow() {
           onBack={() => setStep("email")}
         />
       )}
+      {step === "password" && (
+        <PasswordStep
+          onNext={handlePasswordNext}
+          onBack={() => setStep("otp")}
+        />
+      )}
       {step === "personal" && (
         <PersonalDetailsStep
           onNext={handlePersonalDetailsNext}
-          onBack={() => setStep("otp")}
+          onBack={() => setStep("password")}
         />
       )}
       {step === "university" && (
@@ -114,6 +126,7 @@ function StepIndicator({ current }: { current: Step }) {
   const allSteps: { id: Step; label: string }[] = [
     { id: "email", label: "Email" },
     { id: "otp", label: "Verify" },
+    { id: "password", label: "Password" },
     { id: "personal", label: "Personal" },
     { id: "university", label: "University" },
     { id: "emergency", label: "Emergency" },
@@ -261,6 +274,72 @@ function OtpStep({
         </Button>
         <Button type="submit" disabled={isPending}>
           {isPending ? "Verifying..." : "Verify Code"}
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+// ──────────── Password Step ────────────
+
+function PasswordStep({
+  onNext,
+  onBack,
+}: {
+  onNext: (data: any) => void;
+  onBack: () => void;
+}) {
+  const form = useForm({
+    resolver: zodResolver(passwordSchema),
+    defaultValues: { password: "", confirmPassword: "" },
+  });
+  const [isPending, startTransition] = useTransition();
+
+  const onSubmit = (data: any) => {
+    startTransition(async () => {
+      onNext(data);
+    });
+  };
+
+  return (
+    <form onSubmit={form.handleSubmit(onSubmit)}>
+      <FormSection title="Create Password">
+        <p className="mb-4 text-sm text-brand-muted">
+          Choose a password for your internship portal account.
+        </p>
+        <FormField>
+          <Label htmlFor="password">Password *</Label>
+          <Input
+            id="password"
+            type="password"
+            placeholder="Min 8 characters"
+            {...form.register("password")}
+            disabled={isPending}
+          />
+          {form.formState.errors.password && (
+            <FieldError message={form.formState.errors.password.message} />
+          )}
+        </FormField>
+        <FormField>
+          <Label htmlFor="confirmPassword">Confirm Password *</Label>
+          <Input
+            id="confirmPassword"
+            type="password"
+            placeholder="Re-enter password"
+            {...form.register("confirmPassword")}
+            disabled={isPending}
+          />
+          {form.formState.errors.confirmPassword && (
+            <FieldError message={form.formState.errors.confirmPassword.message} />
+          )}
+        </FormField>
+      </FormSection>
+      <div className="flex gap-3">
+        <Button type="button" variant="outline" onClick={onBack} disabled={isPending}>
+          Back
+        </Button>
+        <Button type="submit" disabled={isPending}>
+          Continue
         </Button>
       </div>
     </form>

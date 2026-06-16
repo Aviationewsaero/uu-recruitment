@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { revalidatePath } from "next/cache";
 import { requireRole } from "@/lib/auth-user";
 import { prisma } from "@/lib/prisma";
 import { InternStatusBadge, DepartmentBadge } from "./InternBadges";
@@ -253,10 +254,19 @@ function ApproveButton({ internId }: { internId: string }) {
     <form
       action={async () => {
         "use server";
-        await fetch(
-          `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3001"}/api/admin/interns/${internId}/approve`,
-          { method: "POST" }
-        );
+        await requireRole("SUPER_ADMIN");
+        const intern = await prisma.intern.findUnique({ where: { id: internId } });
+        if (!intern) return;
+        await prisma.intern.update({ where: { id: internId }, data: { status: "ACTIVE" } });
+        const { Resend } = await import("resend");
+        const resend = new Resend(process.env.RESEND_API_KEY);
+        await resend.emails.send({
+          from: "noreply@ews.aero",
+          to: intern.personalEmail,
+          subject: "Your Elite World Services Internship Portal Account Has Been Approved",
+          html: `<h2>Account Approved!</h2><p>Hi ${intern.fullName},</p><p>Your internship portal account has been approved. You now have full access to study materials, attendance, and notes.</p><p>Log in at <a href="https://careers.ews.aero/intern/login">careers.ews.aero/intern/login</a></p>`,
+        });
+        revalidatePath("/admin/interns");
       }}
       className="inline"
     >
@@ -277,10 +287,19 @@ function DeactivateButton({ internId }: { internId: string }) {
     <form
       action={async () => {
         "use server";
-        await fetch(
-          `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3001"}/api/admin/interns/${internId}/deactivate`,
-          { method: "POST" }
-        );
+        await requireRole("SUPER_ADMIN");
+        const intern = await prisma.intern.findUnique({ where: { id: internId } });
+        if (!intern) return;
+        await prisma.intern.update({ where: { id: internId }, data: { status: "INACTIVE" } });
+        const { Resend } = await import("resend");
+        const resend = new Resend(process.env.RESEND_API_KEY);
+        await resend.emails.send({
+          from: "noreply@ews.aero",
+          to: intern.personalEmail,
+          subject: "Your Elite World Services Internship Portal Access Has Been Deactivated",
+          html: `<h2>Account Deactivated</h2><p>Hi ${intern.fullName},</p><p>Your internship portal account has been deactivated. If you believe this is an error, please contact the admin.</p>`,
+        });
+        revalidatePath("/admin/interns");
       }}
       className="inline"
     >

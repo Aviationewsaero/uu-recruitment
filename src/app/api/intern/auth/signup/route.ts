@@ -83,9 +83,7 @@ export async function POST(req: NextRequest) {
           emergencyContactName: data.emergencyContactName || undefined,
           emergencyContactRelation: data.emergencyContactRelation || undefined,
           emergencyContactPhone: data.emergencyContactPhone || undefined,
-          skillsAssessment: data.skillsAssessment
-            ? JSON.parse(data.skillsAssessment)
-            : undefined,
+          skillsAssessment: data.skillsAssessment || undefined,
           passwordHash,
           consentGiven: data.consentGiven,
           status: "PENDING_VERIFICATION", // Awaiting admin approval
@@ -136,13 +134,11 @@ export async function POST(req: NextRequest) {
           emergencyContactName: data.emergencyContactName || undefined,
           emergencyContactRelation: data.emergencyContactRelation || undefined,
           emergencyContactPhone: data.emergencyContactPhone || undefined,
-          skillsAssessment: data.skillsAssessment
-            ? JSON.parse(data.skillsAssessment)
-            : undefined,
+          skillsAssessment: data.skillsAssessment || undefined,
           passwordHash,
-          emailVerifiedAt: new Date(), // Set email verified since OTP was verified
+          emailVerifiedAt: new Date(),
           consentGiven: data.consentGiven,
-          status: "ACTIVE",
+          status: "PENDING_VERIFICATION",
         },
       });
     }
@@ -156,7 +152,7 @@ export async function POST(req: NextRequest) {
     await resend.emails.send({
       from: "noreply@ews.aero",
       to: data.email,
-      subject: "Welcome to UU Aviation Internship Portal",
+      subject: "Welcome to Elite World Services Internship Portal",
       html: `
         <h2>Welcome, ${data.fullName}!</h2>
         <p>Your internship portal account has been created successfully.</p>

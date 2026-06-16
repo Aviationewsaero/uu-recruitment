@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/Button";
 import Link from "next/link";
 
 export const metadata = {
-  title: "Signup Successful - UU Aviation Portal",
+  title: "Signup Successful - Elite World Services",
 };
 
 export default function SignupSuccessPage({
@@ -21,7 +21,7 @@ export default function SignupSuccessPage({
             Signup Successful!
           </h1>
           <p className="mt-4 text-brand-muted">
-            Welcome to the UU Aviation Internship Portal
+            Welcome to the Elite World Services Internship Portal
           </p>
 
           <div className="my-8 rounded-lg bg-brand-surface p-6">
