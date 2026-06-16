@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* Brand theme — derived from Elite World Services aviation shield logo.
+/* Brand theme — derived from Elite World Services Limited aviation shield logo.
    Primary: deep navy. Accent: vibrant green (the swoosh). */
 @theme {
   --color-brand-navy: #1e3a8a;

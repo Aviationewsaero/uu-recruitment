@@ -74,11 +74,11 @@ function AdmitCard({ data }: { data: AdmitCardData }) {
   return (
     <Document
       title={`Admit Card – ${data.registrationId}`}
-      author="Elite World Services"
+      author="Elite World Services Limited"
     >
       <Page size="A4" style={styles.page}>
         <View style={styles.hero}>
-          <Text style={styles.brandTag}>ELITE WORLD SERVICES</Text>
+          <Text style={styles.brandTag}>ELITE WORLD SERVICES LIMITED</Text>
           <Text style={styles.title}>Aviation Recruitment Drive — Admit Card</Text>
           <Text style={styles.subtitle}>Uttaranchal University · 2026</Text>
         </View>

@@ -29,13 +29,13 @@ function shell(opts: { title: string; preview: string; bodyHtml: string }) {
 <div style="display:none;max-height:0;overflow:hidden;">${opts.preview}</div>
 <div class="wrap">
   <div class="hero">
-    <span class="tag">Elite World Services</span>
+    <span class="tag">Elite World Services Limited</span>
     <h1>${opts.title}</h1>
   </div>
   <div class="accent"></div>
   <div class="body">${opts.bodyHtml}</div>
   <div class="footer">
-    © 2026 Elite World Services · ${BRAND.name}<br/>
+    © 2026 Elite World Services Limited · ${BRAND.name}<br/>
     <a href="${BRAND.url}" style="color:#1e3a8a;">${BRAND.url.replace(/^https?:\/\//, "")}</a>
   </div>
 </div>
@@ -104,7 +104,7 @@ export function selectedEmail({ fullName, registrationId }: DecisionArgs) {
           <li>Keep this email for your records - quote your reference ID in all correspondence</li>
           <li>For urgent questions: <a href="mailto:aviation@ews.aero">aviation@ews.aero</a></li>
         </ul>
-        <p>Once again - welcome to Elite World Services. We're excited to have you on board.</p>
+        <p>Once again - welcome to Elite World Services Limited. We're excited to have you on board.</p>
       `,
     }),
   };

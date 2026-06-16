@@ -522,7 +522,7 @@ function RegistrationForm({
             className="mt-1 h-4 w-4 rounded border-brand-border accent-brand-green"
           />
           <span className="text-sm text-brand-text">
-            I consent to Elite World Services collecting and processing my
+            I consent to Elite World Services Limited collecting and processing my
             data for this recruitment drive. Data is held for 18 months and I
             can email aviation@ews.aero to request deletion anytime.
           </span>

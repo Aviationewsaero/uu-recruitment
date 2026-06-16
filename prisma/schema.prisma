@@ -52,45 +52,67 @@ enum EmailStatus {
   BOUNCED
 }
 
+// ----- Intern Portal enums (INT-1) -----
+
+enum InternStatus {
+  PENDING_VERIFICATION // signed up, hasn't verified email yet
+  ACTIVE // verified + within internship period + admin-active
+  INACTIVE // admin disabled (e.g. compliance issue)
+  COMPLETED // internship period ended naturally
+  TERMINATED // admin force-ended before end date
+}
+
+enum InternshipDepartment {
+  DIGITAL_MARKETING
+  MBA_HR
+  OTHER
+}
+
+enum InternAttendanceMethod {
+  CHECK_IN // intern self-marked
+  AUTO // login implied attendance
+  ADMIN // admin override
+}
+
 // ----- Models -----
 
 model Student {
-  id              String          @id @default(uuid()) @db.Uuid
-  registrationId  String          @unique // human-readable, e.g. "UU-AV-2026-0001"
+  id             String          @id @default(uuid()) @db.Uuid
+  registrationId String          @unique // human-readable, e.g. "UU-AV-2026-0001"
   // Identity
-  fullName        String
-  fatherName      String?
-  motherName      String?
-  phone           String
-  email           String          @unique // email-locked at registration
-  gender          Gender
-  address         String?
+  fullName       String
+  fatherName     String?
+  motherName     String?
+  phone          String
+  email          String          @unique // email-locked at registration
+  gender         Gender
+  address        String?
   // Academics
-  course          String
-  customCourse    String?
-  semester        String
-  specialization  String?
-  tenthPercent    Decimal         @db.Decimal(5, 2)
-  twelfthPercent  Decimal         @db.Decimal(5, 2)
-  tenthState      String?
-  twelfthState    String?
-  graduationCgpa  Decimal?        @db.Decimal(4, 2)
+  course         String
+  customCourse   String?
+  semester       String
+  specialization String?
+  tenthPercent   Decimal         @db.Decimal(5, 2)
+  twelfthPercent Decimal         @db.Decimal(5, 2)
+  tenthState     String?
+  twelfthState   String?
+  graduationCgpa Decimal?        @db.Decimal(4, 2)
   // Documents (Supabase Storage paths)
-  resumeUrl       String?
-  passportPhoto   String?
+  resumeUrl      String?
+  passportPhoto  String?
   // Status
-  status          InterviewStatus @default(PENDING)
-  consentGiven    Boolean         @default(false)
+  status         InterviewStatus @default(PENDING)
+  consentGiven   Boolean         @default(false)
   // Per-student secret for the admit-card download URL — prevents anyone
   // who knows a registrationId from downloading another student's PDF.
-  admitCardToken  String?
+  admitCardToken String?
   // Relations
-  token           Token?
-  interviewLogs   InterviewLog[]
-  emailLogs       EmailLog[]
+  token          Token?
+  interviewLogs  InterviewLog[]
+  emailLogs      EmailLog[]
   // Audit
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
 
   @@index([status])
   @@index([course])
@@ -98,51 +120,51 @@ model Student {
 }
 
 model Token {
-  id            String      @id @default(uuid()) @db.Uuid
-  tokenNumber   Int         @unique @default(autoincrement()) // atomic Postgres SERIAL — no race under concurrency
-  studentId     String      @unique @db.Uuid
-  student       Student     @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  roomId        String?     @db.Uuid
-  room          Room?       @relation(fields: [roomId], references: [id])
-  status        TokenStatus @default(WAITING)
-  calledAt      DateTime?
-  startedAt     DateTime?
-  completedAt   DateTime?
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  id          String      @id @default(uuid()) @db.Uuid
+  tokenNumber Int         @unique @default(autoincrement()) // atomic Postgres SERIAL — no race under concurrency
+  studentId   String      @unique @db.Uuid
+  student     Student     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  roomId      String?     @db.Uuid
+  room        Room?       @relation(fields: [roomId], references: [id])
+  status      TokenStatus @default(WAITING)
+  calledAt    DateTime?
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
 
   @@index([status, roomId])
   @@index([roomId, tokenNumber])
 }
 
 model Room {
-  id            String         @id @default(uuid()) @db.Uuid
-  roomNumber    String         @unique // "R1", "R2", "Boardroom-A"
-  displayName   String
-  recruiterId   String?        @db.Uuid
-  recruiter     User?          @relation(fields: [recruiterId], references: [id])
-  active        Boolean        @default(true)
-  currentTokenId String?       @db.Uuid // pointer to currently-called token in this room
-  tokens        Token[]
-  interviewLogs InterviewLog[]
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  id             String         @id @default(uuid()) @db.Uuid
+  roomNumber     String         @unique // "R1", "R2", "Boardroom-A"
+  displayName    String
+  recruiterId    String?        @db.Uuid
+  recruiter      User?          @relation(fields: [recruiterId], references: [id])
+  active         Boolean        @default(true)
+  currentTokenId String?        @db.Uuid // pointer to currently-called token in this room
+  tokens         Token[]
+  interviewLogs  InterviewLog[]
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
 }
 
 model InterviewLog {
-  id            String          @id @default(uuid()) @db.Uuid
-  studentId     String          @db.Uuid
-  student       Student         @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  recruiterId   String          @db.Uuid
-  recruiter     User            @relation(fields: [recruiterId], references: [id])
-  roomId        String          @db.Uuid
-  room          Room            @relation(fields: [roomId], references: [id])
-  rating        Int? // 1-5
-  notes         String?
-  decision      InterviewStatus
-  startedAt     DateTime
-  endedAt       DateTime
-  createdAt     DateTime        @default(now())
+  id          String          @id @default(uuid()) @db.Uuid
+  studentId   String          @db.Uuid
+  student     Student         @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  recruiterId String          @db.Uuid
+  recruiter   User            @relation(fields: [recruiterId], references: [id])
+  roomId      String          @db.Uuid
+  room        Room            @relation(fields: [roomId], references: [id])
+  rating      Int? // 1-5
+  notes       String?
+  decision    InterviewStatus
+  startedAt   DateTime
+  endedAt     DateTime
+  createdAt   DateTime        @default(now())
 
   @@index([studentId])
   @@index([recruiterId])
@@ -201,4 +223,233 @@ model AuditLog {
   @@index([actorId])
   @@index([action])
   @@index([createdAt])
+}
+
+// ----- Intern Portal models (INT-1) -----
+// Interns are SEPARATE from Students (recruitment-drive applicants) and
+// SEPARATE from Users (staff). They have their own login, their own session
+// cookie, and their own admin views. Designed for UU Digital Marketing +
+// MBA HR cohort interns on 8-week placements.
+
+model Intern {
+  id       String @id @default(uuid()) @db.Uuid
+  internId String @unique // human-readable, e.g. "EWS-INT-2026-0001"
+
+  // ── Personal ─────────────────────────────────────────────────────────
+  fullName        String
+  dateOfBirth     DateTime? @db.Date
+  gender          Gender
+  bloodGroup      String?
+  profilePhotoUrl String?
+
+  // ── Contact ──────────────────────────────────────────────────────────
+  personalEmail    String  @unique // primary login
+  collegeEmail     String?
+  phone            String
+  alternatePhone   String?
+  parentContact    String?
+  currentAddress   String?
+  permanentAddress String?
+
+  // ── University ───────────────────────────────────────────────────────
+  universityName     String               @default("Uttaranchal University")
+  department         InternshipDepartment
+  enrollmentNumber   String?              @unique
+  batchYear          Int?
+  currentSemester    String?
+  expectedGraduation String?
+  universityMentor   String?
+
+  // ── Education history ────────────────────────────────────────────────
+  class10Board   String?
+  class10Year    Int?
+  class10Percent Decimal? @db.Decimal(5, 2)
+  class12Board   String?
+  class12Stream  String?
+  class12Year    Int?
+  class12Percent Decimal? @db.Decimal(5, 2)
+  ugCourse       String?
+  ugUniversity   String?
+  currentCgpa    Decimal? @db.Decimal(4, 2)
+
+  // ── Documents (Supabase Storage paths) ───────────────────────────────
+  resumeUrl String?
+
+  // ── ID (optional, only when stipend triggers tax obligations) ────────
+  aadhaarLast4 String? // last 4 digits ONLY — never store full Aadhaar
+  panNumber    String? // optional; only if stipend > taxable threshold
+
+  // ── Emergency contact ────────────────────────────────────────────────
+  emergencyContactName     String?
+  emergencyContactRelation String?
+  emergencyContactPhone    String?
+
+  // ── Skills self-assessment (free-form JSON for flexibility) ──────────
+  skillsAssessment Json?
+
+  // ── Auth ─────────────────────────────────────────────────────────────
+  passwordHash    String // bcrypt
+  emailVerifiedAt DateTime? // set when OTP verified
+
+  // ── Status + mentor ──────────────────────────────────────────────────
+  status          InternStatus @default(PENDING_VERIFICATION)
+  consentGiven    Boolean      @default(false)
+  assignedMentor  String? // EWS-side mentor name (free text for MVP)
+  assignedProject String? // project area / focus
+
+  // ── Relations ────────────────────────────────────────────────────────
+  period     InternshipPeriod?
+  progress   InternProgress[]
+  notepad    InternNotepad?
+  viewLogs   InternViewLog[]
+  attendance InternAttendance[]
+  otps       InternOtp[]
+
+  // ── Audit ────────────────────────────────────────────────────────────
+  lastLoginAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([status])
+  @@index([department])
+  @@index([createdAt])
+}
+
+model InternshipPeriod {
+  id              String   @id @default(uuid()) @db.Uuid
+  internId        String   @unique @db.Uuid
+  intern          Intern   @relation(fields: [internId], references: [id], onDelete: Cascade)
+  startDate       DateTime @db.Date
+  endDate         DateTime @db.Date
+  durationWeeks   Int      @default(8)
+  stipendPerMonth Decimal? @db.Decimal(10, 2)
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Cron checks endDate < today to auto-flip Intern.status → COMPLETED
+  @@index([endDate])
+}
+
+// One-time codes for email verification (signup) and password reset.
+// Never store plaintext OTPs — hash with bcrypt like passwords.
+model InternOtp {
+  id         String    @id @default(uuid()) @db.Uuid
+  internId   String    @db.Uuid
+  intern     Intern    @relation(fields: [internId], references: [id], onDelete: Cascade)
+  codeHash   String // bcrypt hash of the 6-digit code
+  purpose    String // "signup_verify" | "password_reset"
+  expiresAt  DateTime
+  attempts   Int       @default(0)
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([internId, purpose])
+  @@index([expiresAt])
+}
+
+// A study material "module" — a deck the admin uploads (slide images,
+// because PPT → PNG conversion is done by admin in PowerPoint for MVP,
+// auto-conversion lands in Phase 2).
+model StudyMaterial {
+  id          String  @id @default(uuid()) @db.Uuid
+  slug        String  @unique
+  title       String
+  description String?
+
+  // Audience filter — comma-separated department list; null = all interns.
+  // e.g. "DIGITAL_MARKETING" or "DIGITAL_MARKETING,MBA_HR"
+  audienceDepartments String?
+
+  displayOrder Int       @default(0)
+  isActive     Boolean   @default(true)
+  uploadedBy   String?   @db.Uuid // User.id (staff who uploaded)
+  totalSlides  Int       @default(0)
+  archivedAt   DateTime? // soft archive
+
+  slides   StudyMaterialSlide[]
+  progress InternProgress[]
+  viewLogs InternViewLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([displayOrder])
+}
+
+model StudyMaterialSlide {
+  id          String        @id @default(uuid()) @db.Uuid
+  materialId  String        @db.Uuid
+  material    StudyMaterial @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  slideNumber Int
+  imagePath   String // path in supabase storage bucket study-materials/
+  imageWidth  Int?
+  imageHeight Int?
+  createdAt   DateTime      @default(now())
+
+  @@unique([materialId, slideNumber])
+  @@index([materialId])
+}
+
+// Tracks per-intern progress through a material (last slide viewed + count).
+model InternProgress {
+  id           String        @id @default(uuid()) @db.Uuid
+  internId     String        @db.Uuid
+  intern       Intern        @relation(fields: [internId], references: [id], onDelete: Cascade)
+  materialId   String        @db.Uuid
+  material     StudyMaterial @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  lastSlide    Int           @default(1)
+  slidesViewed Int           @default(0)
+  completedAt  DateTime? // set when slidesViewed >= material.totalSlides
+  updatedAt    DateTime      @updatedAt
+
+  @@unique([internId, materialId])
+  @@index([internId])
+}
+
+// One row per intern. Auto-saved markdown content + last-N version history.
+model InternNotepad {
+  id        String   @id @default(uuid()) @db.Uuid
+  internId  String   @unique @db.Uuid
+  intern    Intern   @relation(fields: [internId], references: [id], onDelete: Cascade)
+  content   String   @default("") // markdown
+  versions  Json? // last 10 snapshots: [{ ts, content }]
+  charCount Int      @default(0)
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+}
+
+// Forensic trail — who viewed which slide, when, from where.
+// Critical for the watermark/leak-attribution model.
+model InternViewLog {
+  id          String        @id @default(uuid()) @db.Uuid
+  internId    String        @db.Uuid
+  intern      Intern        @relation(fields: [internId], references: [id], onDelete: Cascade)
+  materialId  String        @db.Uuid
+  material    StudyMaterial @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  slideNumber Int
+  ipAddress   String?
+  userAgent   String?
+  viewedAt    DateTime      @default(now())
+
+  @@index([internId, materialId])
+  @@index([viewedAt])
+}
+
+// Daily attendance — one row per (intern, date). Useful for UU's required
+// internship attendance report at the end of the program.
+model InternAttendance {
+  id          String                 @id @default(uuid()) @db.Uuid
+  internId    String                 @db.Uuid
+  intern      Intern                 @relation(fields: [internId], references: [id], onDelete: Cascade)
+  date        DateTime               @db.Date
+  checkedInAt DateTime               @default(now())
+  method      InternAttendanceMethod @default(CHECK_IN)
+  ipAddress   String?
+  notes       String?
+
+  @@unique([internId, date])
+  @@index([internId])
+  @@index([date])
 }

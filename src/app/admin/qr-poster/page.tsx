@@ -45,7 +45,7 @@ export default async function QRPosterPage({
           {/* Header */}
           <div className="flex items-center justify-center gap-3 text-xs uppercase tracking-[0.3em] text-brand-muted">
             <span className="inline-block h-px w-10 bg-brand-green" />
-            Elite World Services
+            Elite World Services Limited
             <span className="inline-block h-px w-10 bg-brand-green" />
           </div>
 
@@ -107,7 +107,7 @@ export default async function QRPosterPage({
 
           {/* Footer */}
           <div className="mt-6 text-xs text-brand-muted">
-            Powered by Elite World Services · aviation@ews.aero
+            Powered by Elite World Services Limited · aviation@ews.aero
           </div>
         </article>
       </div>

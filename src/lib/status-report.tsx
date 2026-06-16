@@ -357,14 +357,14 @@ function StatusReportDoc({ input }: { input: StatusReportInput }) {
   return (
     <Document
       title="Student Status Report"
-      author="Elite World Services"
+      author="Elite World Services Limited"
       subject={input.driveTitle}
     >
       {/* ─── PAGE 1 — Cover + Summary ────────────────────────────────── */}
       <Page size="A4" style={styles.page}>
         <View style={styles.hero}>
           <View style={styles.brandRow}>
-            <Text style={styles.brand}>ELITE WORLD SERVICES · AVIATION</Text>
+            <Text style={styles.brand}>ELITE WORLD SERVICES LIMITED · AVIATION</Text>
             <Text style={styles.brandRight}>{input.driveDate}</Text>
           </View>
           <Text style={styles.title}>Student Status Report</Text>
@@ -407,9 +407,9 @@ function StatusReportDoc({ input }: { input: StatusReportInput }) {
         </View>
 
         {/* About EWS */}
-        <Text style={styles.sectionLabel}>ABOUT ELITE WORLD SERVICES</Text>
+        <Text style={styles.sectionLabel}>ABOUT ELITE WORLD SERVICES LIMITED</Text>
         <Text style={styles.body}>
-          Elite World Services (EWS) is an India-based aviation ground-services
+          Elite World Services Limited (EWS) is an India-based aviation ground-services
           aggregator working alongside established airport-services operators
           to staff customer-facing roles across the Indian airport network. EWS
           conducts structured campus recruitment drives in partnership with
@@ -481,7 +481,7 @@ function StatusReportDoc({ input }: { input: StatusReportInput }) {
 
         <View style={styles.footer}>
           <Text>
-            Elite World Services · aviation@ews.aero · careers.ews.aero
+            Elite World Services Limited · aviation@ews.aero · careers.ews.aero
           </Text>
           <Text>
             Generated {input.generatedAt} · {input.generatedBy} · Page 1
@@ -605,7 +605,7 @@ function StatusReportDoc({ input }: { input: StatusReportInput }) {
         ) : null}
 
         <View style={styles.footer}>
-          <Text>Elite World Services · aviation@ews.aero · CONFIDENTIAL</Text>
+          <Text>Elite World Services Limited · aviation@ews.aero · CONFIDENTIAL</Text>
           <Text
             render={({ pageNumber, totalPages }) =>
               `Page ${pageNumber} of ${totalPages}`
@@ -633,7 +633,7 @@ function StatusReportDoc({ input }: { input: StatusReportInput }) {
           <Text>
             Nothing in this report constitutes an offer of employment,
             internship, traineeship, stipend, placement or any other contractual
-            commitment by Elite World Services or its partner-airport
+            commitment by Elite World Services Limited or its partner-airport
             operators. Inclusion of a candidate in the &quot;Shortlisted for
             Placement Consideration&quot; section indicates only that the
             candidate is being progressed to the next stage of evaluation.
@@ -677,7 +677,7 @@ function StatusReportDoc({ input }: { input: StatusReportInput }) {
           </Text>
           <Text>
             This report contains candidate evaluation information shared in
-            confidence between Elite World Services and {input.universityName}{" "}
+            confidence between Elite World Services Limited and {input.universityName}{" "}
             for the sole purpose of recruitment coordination. The university
             placement cell is requested to use this information only for
             internal placement-coordination purposes and not to reproduce,
@@ -705,7 +705,7 @@ function StatusReportDoc({ input }: { input: StatusReportInput }) {
         <View style={styles.signBlock}>
           <View style={styles.signLeft}>
             <Text style={styles.signLeftLabel}>ISSUED BY</Text>
-            <Text style={styles.signLeftValue}>For Elite World Services</Text>
+            <Text style={styles.signLeftValue}>For Elite World Services Limited</Text>
             <Text style={styles.signLeftSub}>Aviation Recruitment Team</Text>
             <Text style={styles.signLeftSub}>aviation@ews.aero</Text>
           </View>
@@ -718,7 +718,7 @@ function StatusReportDoc({ input }: { input: StatusReportInput }) {
         </View>
 
         <View style={styles.footer}>
-          <Text>Elite World Services · aviation@ews.aero · CONFIDENTIAL</Text>
+          <Text>Elite World Services Limited · aviation@ews.aero · CONFIDENTIAL</Text>
           <Text
             render={({ pageNumber, totalPages }) =>
               `Page ${pageNumber} of ${totalPages}`
@@ -869,7 +869,7 @@ function StatusReportDoc({ input }: { input: StatusReportInput }) {
         )}
 
         <View style={styles.footer} fixed>
-          <Text>Elite World Services · aviation@ews.aero · CONFIDENTIAL</Text>
+          <Text>Elite World Services Limited · aviation@ews.aero · CONFIDENTIAL</Text>
           <Text
             render={({ pageNumber, totalPages }) =>
               `Page ${pageNumber} of ${totalPages}`

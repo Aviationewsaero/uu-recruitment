@@ -119,7 +119,7 @@ export function DirectApplyForm() {
           required
         />
         <span className="text-brand-text">
-          I consent to Elite World Services storing and processing my details
+          I consent to Elite World Services Limited storing and processing my details
           for the purpose of evaluating my application, in accordance with
           the Digital Personal Data Protection Act, 2023.
         </span>

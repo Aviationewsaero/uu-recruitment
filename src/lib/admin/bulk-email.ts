@@ -53,13 +53,13 @@ const SHELL = (subject: string, htmlBody: string) => `<!doctype html>
 <html><body style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#0f172a;background:#f8fafc;">
 <div style="max-width:560px;margin:0 auto;background:#fff;">
   <div style="background:linear-gradient(135deg,#1e3a8a,#172a5e);color:#fff;padding:24px 28px;">
-    <p style="margin:0;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,0.7);">Elite World Services</p>
+    <p style="margin:0;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,0.7);">Elite World Services Limited</p>
     <h1 style="margin:4px 0 0 0;font-size:20px;">${subject}</h1>
   </div>
   <div style="height:4px;background:#22c55e;"></div>
   <div style="padding:28px;line-height:1.6;font-size:15px;">${htmlBody}</div>
   <div style="padding:20px 28px;border-top:1px solid #e2e8f0;text-align:center;font-size:11px;color:#64748b;">
-    © 2026 Elite World Services · UU Aviation Recruitment 2026
+    © 2026 Elite World Services Limited · UU Aviation Recruitment 2026
   </div>
 </div>
 </body></html>`;

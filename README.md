@@ -1,7 +1,7 @@
 # UU Aviation Recruitment Platform
 
 Production MVP for the Uttaranchal University aviation industry campus drive.
-Built by Elite World Services on a 7-day timeline.
+Built by Elite World Services Limited on a 7-day timeline.
 
 **Stack:** Next.js 16 (App Router) · TypeScript · Tailwind 4 · Supabase (Postgres + Auth + Storage + Realtime) · Prisma 7 · Resend · Vercel
 

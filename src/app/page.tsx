@@ -10,7 +10,7 @@ import { DirectApplyForm } from "./DirectApplyForm";
 export const metadata: Metadata = {
   title: "Aviation Careers across India",
   description:
-    "Apply for aviation careers at 67+ Indian airports. Direct hiring, paid internships, and university recruitment partnerships through Elite World Services.",
+    "Apply for aviation careers at 67+ Indian airports. Direct hiring, paid internships, and university recruitment partnerships through Elite World Services Limited.",
   openGraph: {
     title: "EWS Aviation Careers · Across India's airport network",
     description:
@@ -29,7 +29,7 @@ export default function HomePage() {
         <div className="mx-auto max-w-6xl px-6 py-16 sm:py-24">
           <div className="flex items-center gap-3 text-xs uppercase tracking-[0.25em] text-white/70">
             <span className="inline-block h-px w-10 bg-brand-green" />
-            Elite World Services · Aviation
+            Elite World Services Limited · Aviation
           </div>
           <h1 className="mt-5 max-w-3xl text-4xl font-bold leading-tight sm:text-5xl lg:text-6xl">
             Aviation careers across{" "}
@@ -252,13 +252,13 @@ export default function HomePage() {
       <section className="mx-auto max-w-6xl px-6 py-16 sm:py-20">
         <SectionHeader
           eyebrow="About"
-          title="Elite World Services"
+          title="Elite World Services Limited"
           subtitle="An aggregator model for India's airport ground services."
         />
         <div className="mt-8 grid gap-10 lg:grid-cols-[2fr_1fr] text-sm text-brand-text leading-relaxed">
           <div className="space-y-4">
             <p>
-              Elite World Services Pvt. Ltd. is an India-based aviation
+              Elite World Services Limited is an India-based aviation
               services aggregator. Rather than operating its own ground-services
               brand at each airport, EWS works alongside established partner
               operators — including Encalm, Pranam, and others — to channel
@@ -315,7 +315,7 @@ export default function HomePage() {
         <div className="mx-auto max-w-6xl px-6 py-10 grid gap-8 sm:grid-cols-2 lg:grid-cols-4 text-sm">
           <div>
             <p className="text-xs font-bold uppercase tracking-widest text-brand-muted">
-              Elite World Services
+              Elite World Services Limited
             </p>
             <p className="mt-2 text-brand-text">
               Aviation careers across India&apos;s airport network.
@@ -392,7 +392,7 @@ export default function HomePage() {
         </div>
         <div className="border-t border-brand-border">
           <div className="mx-auto max-w-6xl px-6 py-5 text-xs text-brand-muted flex flex-wrap items-center justify-between gap-3">
-            <p>© {new Date().getFullYear()} Elite World Services Pvt. Ltd. · All rights reserved.</p>
+            <p>© {new Date().getFullYear()} Elite World Services Limited · All rights reserved.</p>
             <p>careers.ews.aero</p>
           </div>
         </div>

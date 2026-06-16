@@ -5,7 +5,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   metadataBase: new URL("https://careers.ews.aero"),
   title: {
-    default: "Elite World Services · Aviation Careers",
+    default: "Elite World Services Limited · Aviation Careers",
     template: "%s · EWS Aviation Careers",
   },
   description:
@@ -22,7 +22,7 @@ export const metadata: Metadata = {
   },
   formatDetection: { telephone: false, email: false, address: false },
   openGraph: {
-    title: "Elite World Services · Aviation Careers",
+    title: "Elite World Services Limited · Aviation Careers",
     description:
       "Aviation careers across India's airport network. Direct hiring, paid internships, and campus recruitment partnerships.",
     type: "website",

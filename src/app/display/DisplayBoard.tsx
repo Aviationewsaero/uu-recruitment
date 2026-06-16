@@ -55,7 +55,7 @@ export function DisplayBoard({
       <header className="px-12 py-6 flex items-center justify-between border-b border-white/10">
         <div>
           <p className="text-xs uppercase tracking-[0.3em] text-white/50">
-            Elite World Services
+            Elite World Services Limited
           </p>
           <h1 className="mt-1 text-2xl font-bold tracking-tight">
             UU Aviation Recruitment 2026

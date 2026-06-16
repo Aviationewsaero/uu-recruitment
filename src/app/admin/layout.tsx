@@ -15,6 +15,8 @@ const NAV: { href: string; label: string; roles: string[] }[] = [
   { href: "/admin", label: "Overview", roles: ["SUPER_ADMIN", "DESK_OPERATOR", "EMAIL_MANAGER"] },
   { href: "/admin/queue", label: "Live Queue", roles: ["SUPER_ADMIN", "DESK_OPERATOR"] },
   { href: "/admin/students", label: "Students", roles: ["SUPER_ADMIN", "EMAIL_MANAGER"] },
+  { href: "/admin/interns", label: "Interns", roles: ["SUPER_ADMIN"] },
+  { href: "/admin/materials", label: "Study Materials", roles: ["SUPER_ADMIN"] },
   { href: "/admin/emails", label: "Bulk Email", roles: ["SUPER_ADMIN", "EMAIL_MANAGER"] },
   { href: "/admin/analytics", label: "Analytics", roles: ["SUPER_ADMIN"] },
   { href: "/admin/status-report", label: "Status Report", roles: ["SUPER_ADMIN"] },
