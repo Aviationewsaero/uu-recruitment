@@ -39,28 +39,31 @@ export default async function MaterialPage({ params }: PageProps) {
 
   if (!material.isActive) notFound();
 
-  // Generate signed URLs server-side (service role → works for private buckets)
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 
-  const paths = material.slides.map((s) => s.imagePath);
-  const { data: signedData, error: signedError } = await supabase.storage
-    .from("study-materials")
-    .createSignedUrls(paths, 3600); // 1-hour expiry
-
-  if (signedError) {
-    console.error("Failed to generate signed URLs:", signedError);
-  }
-
-  // Map imagePath → signedUrl
+  // Generate signed URLs with image transforms (resize + WebP) for each slide.
+  // Supabase serves transformed images only on Pro plan; on free plan it falls back
+  // to the original file — still works, just larger.
   const signedUrls: Record<string, string> = {};
-  for (const item of signedData ?? []) {
-    if (item.path && item.signedUrl) {
-      signedUrls[item.path] = item.signedUrl;
-    }
-  }
+  await Promise.all(
+    material.slides.map(async (slide) => {
+      const { data } = await supabase.storage
+        .from("study-materials")
+        .createSignedUrl(slide.imagePath, 3600, {
+          transform: {
+            width: 1280,
+            quality: 80,
+            resize: "contain",
+          },
+        });
+      if (data?.signedUrl) {
+        signedUrls[slide.imagePath] = data.signedUrl;
+      }
+    })
+  );
 
   const lastSlideViewed = material.progress[0]?.lastSlide || 1;
 
