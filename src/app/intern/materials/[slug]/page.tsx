@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { createClient } from "@supabase/supabase-js";
 import { requireActiveIntern } from "@/lib/auth-intern";
 import { prisma } from "@/lib/prisma";
 import { SlideViewer } from "./SlideViewer";
@@ -11,35 +12,24 @@ type PageProps = {
 
 export async function generateMetadata({ params }: PageProps) {
   const { slug } = await params;
-  const material = await prisma.studyMaterial.findUnique({
-    where: { slug },
-  });
-  return {
-    title: material?.title || "Study Material",
-  };
+  const material = await prisma.studyMaterial.findUnique({ where: { slug } });
+  return { title: material?.title || "Study Material" };
 }
 
 export default async function MaterialPage({ params }: PageProps) {
   const { intern } = await requireActiveIntern();
   const { slug } = await params;
 
-  // Fetch material
   const material = await prisma.studyMaterial.findUnique({
     where: { slug },
     include: {
-      slides: {
-        orderBy: { slideNumber: "asc" },
-      },
-      progress: {
-        where: { internId: intern.id },
-        take: 1,
-      },
+      slides: { orderBy: { slideNumber: "asc" } },
+      progress: { where: { internId: intern.id }, take: 1 },
     },
   });
 
   if (!material) notFound();
 
-  // Check department access
   if (
     material.audienceDepartments &&
     !material.audienceDepartments.includes(intern.department)
@@ -47,12 +37,32 @@ export default async function MaterialPage({ params }: PageProps) {
     notFound();
   }
 
-  if (!material.isActive) {
-    notFound();
+  if (!material.isActive) notFound();
+
+  // Generate signed URLs server-side (service role → works for private buckets)
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+
+  const paths = material.slides.map((s) => s.imagePath);
+  const { data: signedData, error: signedError } = await supabase.storage
+    .from("study-materials")
+    .createSignedUrls(paths, 3600); // 1-hour expiry
+
+  if (signedError) {
+    console.error("Failed to generate signed URLs:", signedError);
   }
 
-  const progress = material.progress[0];
-  const lastSlideViewed = progress?.lastSlide || 1;
+  // Map imagePath → signedUrl
+  const signedUrls: Record<string, string> = {};
+  for (const item of signedData ?? []) {
+    if (item.path && item.signedUrl) {
+      signedUrls[item.path] = item.signedUrl;
+    }
+  }
+
+  const lastSlideViewed = material.progress[0]?.lastSlide || 1;
 
   return (
     <SlideViewer
@@ -61,6 +71,7 @@ export default async function MaterialPage({ params }: PageProps) {
       internId={intern.id}
       internEmail={intern.personalEmail}
       lastSlideViewed={lastSlideViewed}
+      signedUrls={signedUrls}
     />
   );
 }

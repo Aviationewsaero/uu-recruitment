@@ -2,13 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
-import { createClient } from "@supabase/supabase-js";
 import type { StudyMaterial, StudyMaterialSlide } from "@/generated/prisma/client";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
 
 interface SlideViewerProps {
   material: StudyMaterial;
@@ -16,6 +10,7 @@ interface SlideViewerProps {
   internId: string;
   internEmail: string;
   lastSlideViewed: number;
+  signedUrls: Record<string, string>;
 }
 
 export function SlideViewer({
@@ -24,6 +19,7 @@ export function SlideViewer({
   internId,
   internEmail,
   lastSlideViewed,
+  signedUrls,
 }: SlideViewerProps) {
   const [currentSlide, setCurrentSlide] = useState(lastSlideViewed);
   const [watermarkedImage, setWatermarkedImage] = useState<string | null>(null);
@@ -57,12 +53,13 @@ export function SlideViewer({
     const loadAndWatermark = async () => {
       setIsLoading(true);
       try {
-        // Get signed URL for the image
-        const { data } = supabase.storage
-          .from("study-materials")
-          .getPublicUrl(slide.imagePath);
-
-        const url = data.publicUrl;
+        // Use server-generated signed URL (works for private buckets)
+        const url = signedUrls[slide.imagePath];
+        if (!url) {
+          console.error("No signed URL for slide:", slide.imagePath);
+          setIsLoading(false);
+          return;
+        }
 
         // Load image
         const img = new Image();
@@ -129,7 +126,7 @@ export function SlideViewer({
     };
 
     loadAndWatermark();
-  }, [slide, currentSlide, internEmail, logView]);
+  }, [slide, currentSlide, internEmail, logView, signedUrls]);
 
   // Update progress
   useEffect(() => {
