@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { requireRole } from "@/lib/auth-user";
 import { prisma } from "@/lib/prisma";
 import { InternStatusBadge, DepartmentBadge } from "./InternBadges";
+import { InternsFilters } from "./InternsFilters";
 
 export const dynamic = "force-dynamic";
 
@@ -95,63 +96,7 @@ export default async function InternsPage({ searchParams }: PageProps) {
       </div>
 
       {/* Filters */}
-      <div className="mb-6 flex flex-wrap gap-3">
-        <div>
-          <label className="block text-xs uppercase tracking-widest text-brand-muted">
-            Status
-          </label>
-          <select
-            multiple
-            defaultValue={status}
-            className="mt-1 rounded-md border border-brand-border px-3 py-2 text-sm"
-            onChange={(e) => {
-              const selected = Array.from(e.target.selectedOptions, (o) => o.value);
-              const params = new URLSearchParams(sp as any);
-              params.delete("page");
-              if (selected.length > 0) {
-                params.set("status", selected.join(","));
-              } else {
-                params.delete("status");
-              }
-              window.location.search = params.toString();
-            }}
-          >
-            <option value="PENDING_VERIFICATION">Pending Verification</option>
-            <option value="ACTIVE">Active</option>
-            <option value="INACTIVE">Inactive</option>
-            <option value="COMPLETED">Completed</option>
-            <option value="TERMINATED">Terminated</option>
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-xs uppercase tracking-widest text-brand-muted">
-            Department
-          </label>
-          <select
-            multiple
-            defaultValue={department}
-            className="mt-1 rounded-md border border-brand-border px-3 py-2 text-sm"
-            onChange={(e) => {
-              const selected = Array.from(e.target.selectedOptions, (o) => o.value);
-              const params = new URLSearchParams(sp as any);
-              params.delete("page");
-              if (selected.length > 0) {
-                params.set("department", selected.join(","));
-              } else {
-                params.delete("department");
-              }
-              window.location.search = params.toString();
-            }}
-          >
-            {departments.map((d) => (
-              <option key={d} value={d}>
-                {d.replace(/_/g, " ")}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
+      <InternsFilters status={status} department={department} departments={departments} />
 
       {/* Table */}
       <div className="overflow-hidden rounded-lg border border-brand-border bg-brand-surface">
