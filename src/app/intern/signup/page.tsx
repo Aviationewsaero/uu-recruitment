@@ -4,7 +4,7 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 export const metadata = {
-  title: "Intern Signup - UU Aviation Portal",
+  title: "Intern Signup - Elite World Services",
 };
 
 export default function InternSignupPage() {
@@ -19,7 +19,7 @@ export default function InternSignupPage() {
             Internship Portal Signup
           </h1>
           <p className="mt-2 text-sm text-brand-muted">
-            Complete your profile to join the UU Aviation internship program.
+            Complete your profile to join the internship program.
             Takes ~5 minutes.
           </p>
         </header>
