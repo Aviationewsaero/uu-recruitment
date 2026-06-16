@@ -154,7 +154,7 @@ export async function POST(req: NextRequest) {
     const resend = new Resend(process.env.RESEND_API_KEY);
 
     await resend.emails.send({
-      from: "noreply@uu-recruitment.ews.aero",
+      from: "noreply@ews.aero",
       to: data.email,
       subject: "Welcome to UU Aviation Internship Portal",
       html: `

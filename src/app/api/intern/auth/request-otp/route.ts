@@ -101,7 +101,7 @@ export async function POST(req: NextRequest) {
 
     // Send OTP via email
     await resend.emails.send({
-      from: "noreply@uu-recruitment.ews.aero",
+      from: "noreply@ews.aero",
       to: email,
       subject: "Your UU Aviation Internship Portal - Verification Code",
       html: `
