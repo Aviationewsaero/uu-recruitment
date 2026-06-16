@@ -16,8 +16,10 @@ export default async function InternsPage({ searchParams }: PageProps) {
   const sp = await searchParams;
 
   // Parse filters
-  const status = sp.status ? (sp.status as string).split(",") : [];
-  const department = sp.department ? (sp.department as string).split(",") : [];
+  const statusParam = (sp.status as string) || "";
+  const departmentParam = (sp.department as string) || "";
+  const status = statusParam ? statusParam.split(",") : [];
+  const department = departmentParam ? departmentParam.split(",") : [];
   const page = parseInt((sp.page as string) || "1", 10);
   const pageSize = 25;
 
@@ -27,7 +29,7 @@ export default async function InternsPage({ searchParams }: PageProps) {
   if (department.length > 0) where.department = { in: department };
 
   // Fetch data
-  const [interns, total, departments] = await Promise.all([
+  const [interns, total, totalAll, departments, rawCounts] = await Promise.all([
     prisma.intern.findMany({
       where,
       select: {
@@ -48,55 +50,36 @@ export default async function InternsPage({ searchParams }: PageProps) {
       take: pageSize,
     }),
     prisma.intern.count({ where }),
+    prisma.intern.count(),
     prisma.intern
-      .findMany({
-        select: { department: true },
-        distinct: ["department"],
-      })
-      .then((rs) => rs.map((r) => r.department).sort()),
+      .findMany({ select: { department: true }, distinct: ["department"] })
+      .then((rs) => rs.map((r) => r.department).filter(Boolean).sort()),
+    prisma.intern.groupBy({ by: ["status"], _count: { _all: true } }),
   ]);
 
-  const totalPages = Math.ceil(total / pageSize);
+  const counts: Record<string, number> = {};
+  for (const row of rawCounts) {
+    counts[row.status] = row._count._all;
+  }
 
-  // Status counts
-  const statusCounts = await prisma.intern.groupBy({
-    by: ["status"],
-    _count: true,
-  });
+  const totalPages = Math.ceil(total / pageSize);
 
   return (
     <div className="p-8">
       <header className="mb-6">
         <h1 className="text-2xl font-bold text-brand-text">Interns</h1>
         <p className="mt-1 text-sm text-brand-muted">
-          {total.toLocaleString()} intern{total === 1 ? "" : "s"} registered
+          {totalAll.toLocaleString()} intern{totalAll === 1 ? "" : "s"} registered
         </p>
       </header>
 
-      {/* Status Summary */}
-      <div className="mb-6 grid grid-cols-4 gap-4">
-        {["PENDING_VERIFICATION", "ACTIVE", "INACTIVE", "COMPLETED"].map(
-          (s) => {
-            const count = statusCounts.find((sc) => sc.status === s)?._count || 0;
-            return (
-              <div
-                key={s}
-                className="rounded-lg border border-brand-border bg-brand-surface p-4"
-              >
-                <p className="text-xs uppercase tracking-widest text-brand-muted">
-                  {s.replace(/_/g, " ")}
-                </p>
-                <p className="mt-2 text-2xl font-bold text-brand-text">
-                  {count}
-                </p>
-              </div>
-            );
-          }
-        )}
-      </div>
-
-      {/* Filters */}
-      <InternsFilters status={status} department={department} departments={departments} />
+      <InternsFilters
+        currentStatus={statusParam}
+        currentDepartment={departmentParam}
+        departments={departments}
+        counts={counts}
+        total={totalAll}
+      />
 
       {/* Table */}
       <div className="overflow-hidden rounded-lg border border-brand-border bg-brand-surface">
@@ -115,7 +98,7 @@ export default async function InternsPage({ searchParams }: PageProps) {
           <tbody className="divide-y divide-brand-border">
             {interns.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-brand-muted">
+                <td colSpan={7} className="px-4 py-12 text-center text-brand-muted">
                   No interns match current filters
                 </td>
               </tr>
@@ -140,7 +123,7 @@ export default async function InternsPage({ searchParams }: PageProps) {
                   <td className="px-4 py-3">
                     <InternStatusBadge status={intern.status} />
                   </td>
-                  <td className="px-4 py-3 text-brand-muted text-xs">
+                  <td className="px-4 py-3 text-xs text-brand-muted">
                     {new Date(intern.createdAt).toLocaleDateString()}
                   </td>
                   <td className="px-4 py-3">
@@ -165,14 +148,12 @@ export default async function InternsPage({ searchParams }: PageProps) {
       {totalPages > 1 && (
         <div className="mt-6 flex items-center justify-between">
           <p className="text-sm text-brand-muted">
-            Page {page} of {totalPages}
+            Page {page} of {totalPages} · {total.toLocaleString()} result{total === 1 ? "" : "s"}
           </p>
           <div className="flex gap-2">
             {page > 1 && (
               <Link
-                href={`?page=${page - 1}${status.length > 0 ? `&status=${status.join(",")}` : ""}${
-                  department.length > 0 ? `&department=${department.join(",")}` : ""
-                }`}
+                href={`/admin/interns?page=${page - 1}${statusParam ? `&status=${statusParam}` : ""}${departmentParam ? `&department=${departmentParam}` : ""}`}
                 className="rounded-md border border-brand-border px-3 py-2 text-sm font-medium hover:bg-brand-bg"
               >
                 ← Previous
@@ -180,9 +161,7 @@ export default async function InternsPage({ searchParams }: PageProps) {
             )}
             {page < totalPages && (
               <Link
-                href={`?page=${page + 1}${status.length > 0 ? `&status=${status.join(",")}` : ""}${
-                  department.length > 0 ? `&department=${department.join(",")}` : ""
-                }`}
+                href={`/admin/interns?page=${page + 1}${statusParam ? `&status=${statusParam}` : ""}${departmentParam ? `&department=${departmentParam}` : ""}`}
                 className="rounded-md border border-brand-border px-3 py-2 text-sm font-medium hover:bg-brand-bg"
               >
                 Next →
