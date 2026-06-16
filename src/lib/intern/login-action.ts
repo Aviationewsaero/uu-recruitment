@@ -5,8 +5,12 @@ import { compare } from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 
 export async function loginInternAction(email: string, password: string) {
+  // NOTE: redirect() throws a NEXT_REDIRECT error internally. It MUST be called
+  // outside any try/catch or the catch will swallow it and the redirect silently
+  // fails. We gate on this flag after the try block instead.
+  let shouldRedirect = false;
+
   try {
-    // Find intern by email
     const intern = await prisma.intern.findUnique({
       where: { personalEmail: email },
       include: { period: true },
@@ -16,7 +20,6 @@ export async function loginInternAction(email: string, password: string) {
       return { success: false, error: "Invalid email or password" };
     }
 
-    // Check status before password (fail fast on disabled accounts)
     if (intern.status === "INACTIVE") {
       return { success: false, error: "Your account has been disabled. Contact your mentor." };
     }
@@ -36,43 +39,38 @@ export async function loginInternAction(email: string, password: string) {
       return { success: false, error: "Your internship period has ended." };
     }
 
-    // Check internship period window
-    if (intern.period) {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      // Get period from DB since we didn't include it
-      const period = await prisma.internshipPeriod.findUnique({
-        where: { internId: intern.id },
-      });
-      if (period && period.endDate < today) {
-        return { success: false, error: "Your internship period has ended." };
-      }
+    // Check internship period end date
+    if (intern.period && intern.period.endDate < new Date()) {
+      return { success: false, error: "Your internship period has ended." };
     }
 
-    // Verify password
+    // Guard against placeholder empty hash left by OTP step
+    if (!intern.passwordHash) {
+      return { success: false, error: "Account setup incomplete. Please contact admin." };
+    }
+
     const isPasswordValid = await compare(password, intern.passwordHash);
     if (!isPasswordValid) {
       return { success: false, error: "Invalid email or password" };
     }
 
-    // Set session cookie (lazy load to avoid module loading in client context)
     const { setInternSessionCookie } = await import("@/lib/intern-session");
     await setInternSessionCookie({
       internId: intern.id,
       email: intern.personalEmail,
     });
 
-    // Update last login
     await prisma.intern.update({
       where: { id: intern.id },
       data: { lastLoginAt: new Date() },
     });
 
-    // Redirect to dashboard
-    redirect("/intern/dashboard");
+    shouldRedirect = true;
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Login failed";
-    console.error("Login error:", message);
+    console.error("Login error:", err instanceof Error ? err.message : err);
     return { success: false, error: "An error occurred. Please try again." };
   }
+
+  // redirect() must live outside try/catch — Next.js uses throw internally
+  if (shouldRedirect) redirect("/intern/dashboard");
 }
