@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { requireRole } from "@/lib/auth-user";
 import { prisma } from "@/lib/prisma";
 import { InternStatusBadge, DepartmentBadge } from "../InternBadges";
@@ -187,10 +188,20 @@ export default async function InternDetailPage({ params }: PageProps) {
               <form
                 action={async () => {
                   "use server";
-                  await fetch(
-                    `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3001"}/api/admin/interns/${internId}/approve`,
-                    { method: "POST" }
-                  );
+                  await requireRole("SUPER_ADMIN");
+                  const rec = await prisma.intern.findUnique({ where: { id: internId } });
+                  if (!rec) return;
+                  await prisma.intern.update({ where: { id: internId }, data: { status: "ACTIVE" } });
+                  const { Resend } = await import("resend");
+                  const resend = new Resend(process.env.RESEND_API_KEY);
+                  await resend.emails.send({
+                    from: "noreply@ews.aero",
+                    to: rec.personalEmail,
+                    subject: "Your Elite World Services Internship Portal Account Has Been Approved",
+                    html: `<h2>Account Approved!</h2><p>Hi ${rec.fullName},</p><p>Your internship portal account has been approved. Log in at <a href="https://careers.ews.aero/intern/login">careers.ews.aero/intern/login</a></p>`,
+                  });
+                  revalidatePath(`/admin/interns/${internId}`);
+                  revalidatePath("/admin/interns");
                 }}
               >
                 <button
@@ -205,10 +216,20 @@ export default async function InternDetailPage({ params }: PageProps) {
               <form
                 action={async () => {
                   "use server";
-                  await fetch(
-                    `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3001"}/api/admin/interns/${internId}/deactivate`,
-                    { method: "POST" }
-                  );
+                  await requireRole("SUPER_ADMIN");
+                  const rec = await prisma.intern.findUnique({ where: { id: internId } });
+                  if (!rec) return;
+                  await prisma.intern.update({ where: { id: internId }, data: { status: "INACTIVE" } });
+                  const { Resend } = await import("resend");
+                  const resend = new Resend(process.env.RESEND_API_KEY);
+                  await resend.emails.send({
+                    from: "noreply@ews.aero",
+                    to: rec.personalEmail,
+                    subject: "Your Elite World Services Internship Portal Access Has Been Deactivated",
+                    html: `<h2>Account Deactivated</h2><p>Hi ${rec.fullName},</p><p>Your internship portal account has been deactivated. If you believe this is an error, please contact the admin.</p>`,
+                  });
+                  revalidatePath(`/admin/interns/${internId}`);
+                  revalidatePath("/admin/interns");
                 }}
               >
                 <button
@@ -219,6 +240,28 @@ export default async function InternDetailPage({ params }: PageProps) {
                 </button>
               </form>
             )}
+
+            {/* Delete — permanent, cascades all related records */}
+            <div className="mt-4 border-t border-brand-border pt-4">
+              <p className="mb-2 text-xs text-brand-muted">
+                Permanently deletes this intern and all their data (OTPs, progress, attendance, notes).
+              </p>
+              <form
+                action={async () => {
+                  "use server";
+                  await requireRole("SUPER_ADMIN");
+                  await prisma.intern.delete({ where: { id: internId } });
+                  redirect("/admin/interns");
+                }}
+              >
+                <button
+                  type="submit"
+                  className="w-full rounded-md border-2 border-red-500 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50"
+                >
+                  🗑 Delete Intern Permanently
+                </button>
+              </form>
+            </div>
           </div>
         </section>
 
@@ -249,6 +292,14 @@ export default async function InternDetailPage({ params }: PageProps) {
                   ? new Date(intern.lastLoginAt).toLocaleDateString()
                   : "Never"}
               </dd>
+            </div>
+            <div className="flex justify-between">
+              <dt className="text-brand-muted">Attendance (all time)</dt>
+              <dd className="text-brand-text">{intern.attendance.length} days</dd>
+            </div>
+            <div className="flex justify-between">
+              <dt className="text-brand-muted">Materials started</dt>
+              <dd className="text-brand-text">{intern.progress.length}</dd>
             </div>
           </dl>
         </section>

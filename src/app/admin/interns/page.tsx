@@ -199,12 +199,15 @@ export default async function InternsPage({ searchParams }: PageProps) {
                     {new Date(intern.createdAt).toLocaleDateString()}
                   </td>
                   <td className="px-4 py-3">
-                    {intern.status === "PENDING_VERIFICATION" && (
-                      <ApproveButton internId={intern.id} />
-                    )}
-                    {(intern.status === "ACTIVE" || intern.status === "PENDING_VERIFICATION") && (
-                      <DeactivateButton internId={intern.id} />
-                    )}
+                    <div className="flex items-center gap-2">
+                      {intern.status === "PENDING_VERIFICATION" && (
+                        <ApproveButton internId={intern.id} />
+                      )}
+                      {(intern.status === "ACTIVE" || intern.status === "PENDING_VERIFICATION") && (
+                        <DeactivateButton internId={intern.id} />
+                      )}
+                      <DeleteButton internId={intern.id} name={intern.fullName} />
+                    </div>
                   </td>
                 </tr>
               ))
@@ -244,6 +247,30 @@ export default async function InternsPage({ searchParams }: PageProps) {
         </div>
       )}
     </div>
+  );
+}
+
+// ── Delete Button ──
+
+function DeleteButton({ internId, name }: { internId: string; name: string }) {
+  return (
+    <form
+      action={async () => {
+        "use server";
+        await requireRole("SUPER_ADMIN");
+        await prisma.intern.delete({ where: { id: internId } });
+        revalidatePath("/admin/interns");
+      }}
+      className="inline"
+    >
+      <button
+        type="submit"
+        title={`Permanently delete ${name}`}
+        className="rounded-md border border-red-300 px-3 py-1 text-xs font-medium text-red-600 hover:bg-red-50"
+      >
+        Delete
+      </button>
+    </form>
   );
 }
 
