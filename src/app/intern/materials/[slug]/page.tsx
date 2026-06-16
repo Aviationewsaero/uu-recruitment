@@ -1,5 +1,4 @@
 import { notFound } from "next/navigation";
-import { createClient } from "@supabase/supabase-js";
 import { requireActiveIntern } from "@/lib/auth-intern";
 import { prisma } from "@/lib/prisma";
 import { SlideViewer } from "./SlideViewer";
@@ -39,31 +38,13 @@ export default async function MaterialPage({ params }: PageProps) {
 
   if (!material.isActive) notFound();
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-
-  // Generate signed URLs with image transforms (resize + WebP) for each slide.
-  // Supabase serves transformed images only on Pro plan; on free plan it falls back
-  // to the original file — still works, just larger.
-  const signedUrls: Record<string, string> = {};
-  await Promise.all(
-    material.slides.map(async (slide) => {
-      const { data } = await supabase.storage
-        .from("study-materials")
-        .createSignedUrl(slide.imagePath, 3600, {
-          transform: {
-            width: 1280,
-            quality: 80,
-            resize: "contain",
-          },
-        });
-      if (data?.signedUrl) {
-        signedUrls[slide.imagePath] = data.signedUrl;
-      }
-    })
-  );
+  // Build same-origin proxy URLs for every slide.
+  // The /api/intern/slide route fetches from Supabase server-side (no CORS),
+  // so SlideViewer can draw them on <canvas> without browser security errors.
+  const slideUrls: Record<number, string> = {};
+  for (const slide of material.slides) {
+    slideUrls[slide.slideNumber] = `/api/intern/slide?materialId=${material.id}&slideNumber=${slide.slideNumber}`;
+  }
 
   const lastSlideViewed = material.progress[0]?.lastSlide || 1;
 
@@ -74,7 +55,7 @@ export default async function MaterialPage({ params }: PageProps) {
       internId={intern.id}
       internEmail={intern.personalEmail}
       lastSlideViewed={lastSlideViewed}
-      signedUrls={signedUrls}
+      slideUrls={slideUrls}
     />
   );
 }
