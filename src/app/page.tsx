@@ -310,6 +310,75 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ─── PORTAL ACCESS ─────────────────────────────────────────────── */}
+      <section id="portal" className="bg-brand-bg border-y border-brand-border py-16 sm:py-20">
+        <div className="mx-auto max-w-6xl px-6">
+          <SectionHeader
+            eyebrow="Portal Access"
+            title="Sign in to your portal"
+            subtitle="Choose your role to access the right dashboard."
+          />
+          <div className="mt-10 grid gap-5 sm:grid-cols-3">
+            <Link
+              href="/admin/login"
+              className="group rounded-xl border-2 border-brand-border bg-brand-surface p-6 hover:border-brand-navy hover:shadow-md transition flex flex-col gap-4"
+            >
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-navy/10 text-brand-navy text-2xl">
+                🛡️
+              </div>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-widest text-brand-muted">Admin</p>
+                <h3 className="mt-1 text-xl font-bold text-brand-text group-hover:text-brand-navy">Admin Portal</h3>
+                <p className="mt-2 text-sm text-brand-muted leading-relaxed">
+                  Manage interns, approve applications, upload study materials, and oversee the full programme.
+                </p>
+              </div>
+              <span className="mt-auto text-sm font-semibold text-brand-navy group-hover:underline">
+                Admin sign in →
+              </span>
+            </Link>
+
+            <Link
+              href="/login"
+              className="group rounded-xl border-2 border-brand-border bg-brand-surface p-6 hover:border-brand-blue hover:shadow-md transition flex flex-col gap-4"
+            >
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-blue/10 text-brand-blue text-2xl">
+                👤
+              </div>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-widest text-brand-muted">Staff</p>
+                <h3 className="mt-1 text-xl font-bold text-brand-text group-hover:text-brand-blue">Staff Portal</h3>
+                <p className="mt-2 text-sm text-brand-muted leading-relaxed">
+                  Recruiters and desk operators — access your recruitment dashboard, interview rooms, and live queue.
+                </p>
+              </div>
+              <span className="mt-auto text-sm font-semibold text-brand-blue group-hover:underline">
+                Staff sign in →
+              </span>
+            </Link>
+
+            <Link
+              href="/intern/login"
+              className="group rounded-xl border-2 border-brand-border bg-brand-surface p-6 hover:border-brand-green-dark hover:shadow-md transition flex flex-col gap-4"
+            >
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-green/10 text-brand-green-dark text-2xl">
+                🎓
+              </div>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-widest text-brand-muted">Intern</p>
+                <h3 className="mt-1 text-xl font-bold text-brand-text group-hover:text-brand-green-dark">Intern Portal</h3>
+                <p className="mt-2 text-sm text-brand-muted leading-relaxed">
+                  Access your study materials, track attendance, take notes, and manage your internship profile.
+                </p>
+              </div>
+              <span className="mt-auto text-sm font-semibold text-brand-green-dark group-hover:underline">
+                Intern sign in →
+              </span>
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {/* ─── FOOTER ────────────────────────────────────────────────────── */}
       <footer className="border-t border-brand-border bg-brand-surface">
         <div className="mx-auto max-w-6xl px-6 py-10 grid gap-8 sm:grid-cols-2 lg:grid-cols-4 text-sm">
@@ -411,15 +480,15 @@ function Nav() {
           <span className="inline-block h-2.5 w-2.5 rounded-full bg-brand-green" />
           <span className="text-sm font-bold tracking-wider">EWS · CAREERS</span>
         </Link>
-        <div className="hidden sm:flex items-center gap-7 text-sm text-white/80">
-          <a href="#drives" className="hover:text-white">
-            Drives
-          </a>
-          <a href="#apply" className="hover:text-white">
-            Apply
-          </a>
-          <a href="#partner" className="hover:text-white">
-            Partner
+        <div className="flex items-center gap-5 text-sm text-white/80">
+          <a href="#drives" className="hidden sm:block hover:text-white">Drives</a>
+          <a href="#apply" className="hidden sm:block hover:text-white">Apply</a>
+          <a href="#partner" className="hidden sm:block hover:text-white">Partner</a>
+          <a
+            href="#portal"
+            className="rounded-md bg-white/10 border border-white/20 px-4 py-1.5 text-sm font-semibold text-white hover:bg-white/20 transition"
+          >
+            Sign In →
           </a>
         </div>
       </div>
