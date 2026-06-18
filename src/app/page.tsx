@@ -339,7 +339,7 @@ export default function HomePage() {
             </Link>
 
             <Link
-              href="/login"
+              href="/admin/login"
               className="group rounded-xl border-2 border-brand-border bg-brand-surface p-6 hover:border-brand-blue hover:shadow-md transition flex flex-col gap-4"
             >
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-blue/10 text-brand-blue text-2xl">
