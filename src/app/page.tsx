@@ -88,8 +88,8 @@ export default function HomePage() {
             status="concluded"
             statusLabel="Drive concluded · Results published"
             description="Recruitment drive held on 29 May 2026 at Uttaranchal University, Dehradun. Shortlisted candidates progress to the Paid Internship-cum-Placement Programme (BBA Aviation) or second-round evaluation (other streams)."
-            ctaLabel="Register / View campaign"
-            ctaHref="/register"
+            ctaLabel="Drive closed"
+            ctaHref="#drives"
           />
           <DriveCard
             kicker="Coming soon"
