@@ -5,7 +5,6 @@
 
 import type { Metadata } from "next";
 import Link from "next/link";
-import Image from "next/image";
 import { DirectApplyForm } from "./DirectApplyForm";
 
 export const metadata: Metadata = {
@@ -475,25 +474,33 @@ export default function HomePage() {
 
 function EWSLogo() {
   return (
-    <div className="flex items-center gap-2.5">
-      <Image
-        src="/aircraft-white.png"
-        alt=""
-        width={28}
-        height={40}
-        className="h-9 w-auto"
-        priority
-      />
-      <div className="flex flex-col justify-center">
-        <span
-          className="text-white font-bold leading-none tracking-[0.22em]"
-          style={{ fontFamily: "Arial, Helvetica, sans-serif", fontSize: "13px" }}
-        >
-          ELITE WORLD SERVICES LIMITED
-        </span>
-        <span className="mt-1.5 block h-px bg-brand-green w-full" />
-      </div>
-    </div>
+    <svg
+      viewBox="0 0 500 38"
+      xmlns="http://www.w3.org/2000/svg"
+      className="h-7 w-auto"
+      aria-hidden="true"
+    >
+      <text
+        x="2" y="16"
+        fontFamily="Arial, Helvetica, sans-serif"
+        fontSize="13"
+        fontWeight="bold"
+        fill="white"
+        letterSpacing="3"
+      >
+        ELITE WORLD SERVICES LIMITED
+      </text>
+      <line x1="2" y1="27" x2="438" y2="27" stroke="#22c55e" strokeWidth="1.2" />
+      <g transform="translate(455, 27) scale(0.25)">
+        <path d="M-60,0 Q-30,-6 20,-5 Q50,-3 65,0 Q50,3 20,5 Q-30,6 -60,0 Z" fill="rgba(255,255,255,0.85)" />
+        <path d="M0,4 L18,3 L55,44 L48,46 L12,8 Z" fill="rgba(255,255,255,0.70)" />
+        <path d="M0,-4 L18,-3 L55,-44 L48,-46 L12,-8 Z" fill="rgba(255,255,255,0.70)" />
+        <path d="M-48,2 L-36,2 L-27,16 L-31,17 Z" fill="rgba(255,255,255,0.70)" />
+        <path d="M-48,-2 L-36,-2 L-27,-16 L-31,-17 Z" fill="rgba(255,255,255,0.70)" />
+        <ellipse cx="15" cy="14" rx="8" ry="3.5" fill="rgba(255,255,255,0.55)" />
+        <ellipse cx="15" cy="-14" rx="8" ry="3.5" fill="rgba(255,255,255,0.55)" />
+      </g>
+    </svg>
   );
 }
 
