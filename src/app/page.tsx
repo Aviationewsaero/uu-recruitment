@@ -313,6 +313,14 @@ export default function HomePage() {
                   +91-9899396679
                 </a>
               </p>
+              <p className="text-brand-text font-medium mt-1">
+                <a
+                  href="tel:+917290000696"
+                  className="text-brand-blue hover:underline"
+                >
+                  +91-7290000696
+                </a>
+              </p>
             </div>
           </aside>
         </div>
