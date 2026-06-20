@@ -58,7 +58,7 @@ export function DisplayBoard({
             Elite World Services Limited
           </p>
           <h1 className="mt-1 text-2xl font-bold tracking-tight">
-            UU Aviation Recruitment 2026
+            EWS Aviation Recruitment 2026
           </h1>
         </div>
         <div className="text-right">

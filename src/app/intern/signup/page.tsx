@@ -32,7 +32,7 @@ export default function InternSignupPage() {
           Applications are now closed
         </h1>
         <p className="mt-3 text-brand-muted leading-relaxed">
-          The UU Aviation campus recruitment drive concluded on{" "}
+          The campus recruitment drive concluded on{" "}
           <strong>29 May 2026</strong>. We are no longer accepting new
           applications for this cycle.
         </p>

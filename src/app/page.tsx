@@ -5,6 +5,7 @@
 
 import type { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 import { DirectApplyForm } from "./DirectApplyForm";
 
 export const metadata: Metadata = {
@@ -84,10 +85,10 @@ export default function HomePage() {
         <div className="mt-10 grid gap-5 sm:grid-cols-2">
           <DriveCard
             kicker="University campus drive"
-            title="UU Aviation Recruitment 2026"
+            title="Aviation Recruitment Drive 2026"
             status="concluded"
             statusLabel="Drive concluded · Results published"
-            description="Recruitment drive held on 29 May 2026 at Uttaranchal University, Dehradun. Shortlisted candidates progress to the Paid Internship-cum-Placement Programme (BBA Aviation) or second-round evaluation (other streams)."
+            description="Recruitment drive held on 29 May 2026. Shortlisted candidates progress to the Paid Internship-cum-Placement Programme (BBA Aviation) or second-round evaluation (other streams)."
             ctaLabel="Drive closed"
             ctaHref="#drives"
           />
@@ -472,13 +473,36 @@ export default function HomePage() {
 
 // ─── Helpers ────────────────────────────────────────────────────────────
 
+function EWSLogo() {
+  return (
+    <div className="flex items-center gap-2.5">
+      <Image
+        src="/aircraft-white.png"
+        alt=""
+        width={28}
+        height={40}
+        className="h-9 w-auto"
+        priority
+      />
+      <div className="flex flex-col justify-center">
+        <span
+          className="text-white font-bold leading-none tracking-[0.22em]"
+          style={{ fontFamily: "Arial, Helvetica, sans-serif", fontSize: "13px" }}
+        >
+          ELITE WORLD SERVICES LIMITED
+        </span>
+        <span className="mt-1.5 block h-px bg-brand-green w-full" />
+      </div>
+    </div>
+  );
+}
+
 function Nav() {
   return (
     <nav className="border-b border-white/10">
-      <div className="mx-auto max-w-6xl px-6 py-4 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2">
-          <span className="inline-block h-2.5 w-2.5 rounded-full bg-brand-green" />
-          <span className="text-sm font-bold tracking-wider">EWS · CAREERS</span>
+      <div className="mx-auto max-w-6xl px-6 py-3 flex items-center justify-between">
+        <Link href="/" aria-label="Elite World Services Limited — Home">
+          <EWSLogo />
         </Link>
         <div className="flex items-center gap-5 text-sm text-white/80">
           <a href="#drives" className="hidden sm:block hover:text-white">Drives</a>

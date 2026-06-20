@@ -11,7 +11,7 @@ export default function RegisterPage() {
       <div className="mx-auto max-w-2xl px-6">
         <header className="mb-8">
           <p className="text-xs uppercase tracking-widest text-brand-muted">
-            UU Aviation Recruitment 2026
+            EWS Aviation Recruitment 2026
           </p>
           <h1 className="mt-1 text-3xl font-bold text-brand-text">
             Student Registration
