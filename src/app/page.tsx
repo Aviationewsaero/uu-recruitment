@@ -305,6 +305,14 @@ export default function HomePage() {
                   aviation@ews.aero
                 </a>
               </p>
+              <p className="text-brand-text font-medium mt-1">
+                <a
+                  href="tel:+919899396679"
+                  className="text-brand-blue hover:underline"
+                >
+                  +91-9899396679
+                </a>
+              </p>
             </div>
           </aside>
         </div>
