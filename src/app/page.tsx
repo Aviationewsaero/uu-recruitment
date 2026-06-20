@@ -508,9 +508,9 @@ function Nav() {
   return (
     <nav className="border-b border-white/10">
       <div className="mx-auto max-w-6xl px-6 py-3 flex items-center justify-between">
-        <Link href="/" aria-label="Elite World Services Limited — Home">
+        <a href="https://ews.aero" aria-label="Elite World Services Limited — Main website">
           <EWSLogo />
-        </Link>
+        </a>
         <div className="flex items-center gap-5 text-sm text-white/80">
           <a href="#drives" className="hidden sm:block hover:text-white">Drives</a>
           <a href="#apply" className="hidden sm:block hover:text-white">Apply</a>
