@@ -46,6 +46,13 @@ export const env = {
   // disable post-drive. Skipped automatically when the recipient IS the
   // BCC address (avoid self-loops on diagnostic tests).
   EMAIL_BCC: optional("EMAIL_BCC", "aviation@ews.aero"),
+
+  // InternAVIA talent pool. Direct applications are persisted there (separate
+  // app, separate database), not here — internavia.ews.aero owns the CV bank
+  // and its admin console. Blank TALENT_INGEST_KEY = the old email-only
+  // behaviour, which is the kill switch.
+  TALENT_API_URL: optional("TALENT_API_URL", "https://internavia.ews.aero"),
+  TALENT_INGEST_KEY: optional("TALENT_INGEST_KEY"),
 } as const;
 
 // Assert critical envs at app boot when in prod mode

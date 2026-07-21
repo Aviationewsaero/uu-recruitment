@@ -8,12 +8,17 @@ import { Button } from "@/components/ui/Button";
 import { Input, Select, Textarea } from "@/components/ui/Input";
 import { FormField, Label, FieldError, FieldHint } from "@/components/ui/Form";
 
+// Mirrors the server-side cap in lib/direct-apply/actions.ts. Checked here too
+// so an oversized file fails instantly instead of after a 5 MB upload.
+const MAX_CV_BYTES = 5 * 1024 * 1024;
+
 export function DirectApplyForm() {
   const [state, formAction, pending] = useActionState(
     submitDirectApplyAction,
     null
   );
   const [consent, setConsent] = useState(false);
+  const [cvName, setCvName] = useState<string | null>(null);
 
   if (state?.ok) {
     return (
@@ -100,6 +105,32 @@ export function DirectApplyForm() {
       </FormField>
 
       <FormField>
+        <Label>Upload your CV (optional)</Label>
+        <input
+          type="file"
+          name="cv"
+          accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (!f) return setCvName(null);
+            if (f.size > MAX_CV_BYTES) {
+              toast.error("That CV is over 5 MB. Please upload a smaller file.");
+              e.target.value = "";
+              return setCvName(null);
+            }
+            setCvName(f.name);
+          }}
+          className="block w-full cursor-pointer rounded-lg border border-brand-border bg-white text-sm text-brand-text file:mr-3 file:cursor-pointer file:rounded-l-lg file:border-0 file:bg-brand-navy file:px-4 file:py-2.5 file:text-sm file:font-semibold file:text-white hover:file:bg-brand-blue"
+        />
+        <FieldHint>
+          PDF or Word, up to 5 MB.{" "}
+          {cvName
+            ? `Attached: ${cvName}`
+            : "No CV handy? Submit anyway — we'll ask for it when we call."}
+        </FieldHint>
+      </FormField>
+
+      <FormField>
         <Label>Anything else we should know?</Label>
         <Textarea
           name="message"
@@ -120,8 +151,9 @@ export function DirectApplyForm() {
         />
         <span className="text-brand-text">
           I consent to Elite World Services Limited storing and processing my details
-          for the purpose of evaluating my application, in accordance with
-          the Digital Personal Data Protection Act, 2023.
+          and CV, and sharing them with its airport partner operators, for the
+          purpose of evaluating my application, in accordance with the Digital
+          Personal Data Protection Act, 2023.
         </span>
       </label>
 

@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import path from "node:path";
 
 // Security headers applied to every response by the platform.
 // HSTS = force HTTPS for 2 years. X-Frame-Options DENY = no iframing.
@@ -21,8 +22,17 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // Pin the workspace root to THIS project. Without this, Turbopack walks up
+  // and detects the parent "CLAUDE PROJECT" package-lock.json as the root,
+  // then watches/compiles every sibling project at once — which spawns a
+  // storm of workers and hangs the machine. Same fix as ews-aero.
+  turbopack: {
+    root: path.join(__dirname),
+  },
+
   experimental: {
-    // Allow server actions to receive large file uploads (slide images).
+    // Allow server actions to receive large file uploads (slide images and
+    // candidate CVs from the direct-apply form).
     serverActions: {
       bodySizeLimit: "20mb",
     },

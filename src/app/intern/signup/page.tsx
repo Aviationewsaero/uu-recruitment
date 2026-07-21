@@ -40,10 +40,10 @@ export default function InternSignupPage() {
           The next drive will be announced through your placement cell.
           For urgent queries, reach us at{" "}
           <a
-            href="mailto:careers@ews.aero"
+            href="mailto:aviation@ews.aero"
             className="font-medium text-brand-green hover:underline"
           >
-            careers@ews.aero
+            aviation@ews.aero
           </a>
           .
         </p>
