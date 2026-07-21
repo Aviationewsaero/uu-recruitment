@@ -38,6 +38,10 @@ const schema = z.object({
   consent: z
     .boolean()
     .refine((v) => v === true, "Consent required to submit"),
+  // Which spoke this came from (a role application vs the talent-network sign-up).
+  // Validated + defaulted server-side on the InternAVIA ingest, so free-text is fine.
+  source: z.string().trim().max(40).optional().or(z.literal("")),
+  sourceDetail: z.string().trim().max(120).optional().or(z.literal("")),
 });
 
 /** Posts the applicant to the InternAVIA talent pool. Returns null on success,
@@ -59,7 +63,8 @@ async function saveToTalentPool(
   }
   if (d.message) fd.set("message", d.message);
   fd.set("consent", "true");
-  fd.set("sourceDetail", "careers.ews.aero direct-apply");
+  if (d.source) fd.set("source", d.source); // TALENT_NETWORK | CAREERS_FORM (validated on ingest)
+  fd.set("sourceDetail", d.sourceDetail || "careers.ews.aero direct-apply");
   if (cv) fd.set("cv", cv, cv.name);
 
   try {

@@ -12,7 +12,8 @@ import { FormField, Label, FieldError, FieldHint } from "@/components/ui/Form";
 // so an oversized file fails instantly instead of after a 5 MB upload.
 const MAX_CV_BYTES = 5 * 1024 * 1024;
 
-export function DirectApplyForm() {
+export function DirectApplyForm({ variant = "apply" }: { variant?: "apply" | "network" } = {}) {
+  const isNetwork = variant === "network";
   const [state, formAction, pending] = useActionState(
     submitDirectApplyAction,
     null
@@ -27,7 +28,7 @@ export function DirectApplyForm() {
           ✓
         </div>
         <h3 className="mt-4 text-xl font-bold text-brand-green-dark">
-          Application received
+          {isNetwork ? "You're in our talent network" : "Application received"}
         </h3>
         <p className="mt-2 text-sm text-brand-text">{state.message}</p>
         <p className="mt-4 text-xs text-brand-muted">
@@ -45,6 +46,9 @@ export function DirectApplyForm() {
       action={formAction}
       className="rounded-xl border border-brand-border bg-brand-surface p-6 space-y-4 shadow-sm"
     >
+      {/* Attributes the sign-up to its spoke; the ingest validates + defaults it. */}
+      <input type="hidden" name="source" value={isNetwork ? "TALENT_NETWORK" : "CAREERS_FORM"} />
+      <input type="hidden" name="sourceDetail" value={isNetwork ? "careers.ews.aero talent network" : "careers.ews.aero direct-apply"} />
       <div className="grid gap-4 sm:grid-cols-2">
         <FormField>
           <Label required>Full name</Label>
@@ -167,10 +171,10 @@ export function DirectApplyForm() {
         className="w-full"
         disabled={!consent || pending}
         onClick={() => {
-          if (consent) toast.info("Submitting your application…");
+          if (consent) toast.info(isNetwork ? "Joining the talent network…" : "Submitting your application…");
         }}
       >
-        {pending ? "Submitting…" : "Submit application →"}
+        {pending ? (isNetwork ? "Joining…" : "Submitting…") : isNetwork ? "Join the talent network →" : "Submit application →"}
       </Button>
 
       <p className="text-center text-xs text-brand-muted">

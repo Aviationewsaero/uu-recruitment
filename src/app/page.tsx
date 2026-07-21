@@ -168,6 +168,13 @@ export default function HomePage() {
           title="Apply directly to EWS"
           subtitle="Looking for an aviation role outside a university drive? Submit your details and our recruitment team will reach out within 48 hours."
         />
+        <p className="mt-3 text-center text-sm text-brand-muted">
+          No specific opening in mind?{" "}
+          <a href="/join" className="font-semibold text-brand-blue hover:underline">
+            Join our talent network
+          </a>{" "}
+          and we&apos;ll email you when a matching role opens.
+        </p>
         <div className="mt-10 grid gap-10 lg:grid-cols-[1fr_1.2fr]">
           <div className="space-y-6 text-sm text-brand-text leading-relaxed">
             <div>
