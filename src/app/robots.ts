@@ -15,8 +15,11 @@ export default function robots(): MetadataRoute.Robots {
           "/admin/",
           "/recruiter",
           "/recruiter/",
-          "/register/success",
-          "/register/success/",
+          // Drive closed — keep the whole registration path out of the index
+          // (see src/lib/drive-gate.ts). On reopen, drop these two lines and
+          // keep only "/register/success" disallowed.
+          "/register",
+          "/register/",
           "/api/",
           "/display",
         ],

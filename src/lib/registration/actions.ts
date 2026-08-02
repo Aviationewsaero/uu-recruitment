@@ -9,6 +9,7 @@ import { uploadFile, UPLOAD_LIMITS, getFileUrl } from "@/lib/storage";
 import { sendEmail } from "@/lib/email";
 import { registrationConfirmation } from "@/lib/email/templates";
 import { env } from "@/lib/env";
+import { DRIVE_OPEN, DRIVE_CLOSED_MESSAGE } from "@/lib/drive-gate";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
 import {
   registrationFormSchema,
@@ -21,6 +22,11 @@ import {
 
 export async function requestOtpAction(_prev: unknown, formData: FormData) {
   try {
+    // DRIVE-GATE: refuse before touching the DB. Closing this first also
+    // shuts the email-enumeration oracle below (the "already registered"
+    // check that would otherwise confirm which emails exist).
+    if (!DRIVE_OPEN) return { ok: false as const, error: DRIVE_CLOSED_MESSAGE };
+
     const parsed = emailSchema.safeParse({ email: formData.get("email") });
     if (!parsed.success) {
       return {
@@ -78,6 +84,9 @@ export async function requestOtpAction(_prev: unknown, formData: FormData) {
 
 export async function verifyOtpAction(_prev: unknown, formData: FormData) {
   try {
+    // DRIVE-GATE: no OTP verification once the drive is closed.
+    if (!DRIVE_OPEN) return { ok: false as const, error: DRIVE_CLOSED_MESSAGE };
+
     const parsed = otpSchema.safeParse({
       email: formData.get("email"),
       code: formData.get("code"),
@@ -117,6 +126,11 @@ export async function submitRegistrationAction(
   email: string,
   formData: FormData
 ): Promise<SubmitResult> {
+  // DRIVE-GATE: the write path (creates Student + Token, uploads files, sends
+  // email). Hard-stop here so a scripted/replayed POST cannot create records
+  // even if it never loaded the (already-closed) page.
+  if (!DRIVE_OPEN) return { ok: false, error: DRIVE_CLOSED_MESSAGE };
+
   try {
     return await submitRegistrationInner(email, formData);
   } catch (e) {
