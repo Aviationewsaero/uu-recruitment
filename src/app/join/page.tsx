@@ -7,10 +7,28 @@ export const metadata: Metadata = {
     "Register your interest for aviation roles across EWS partner operators. We'll email you when a matching opening comes up.",
 };
 
+// Turn the SEO landing pages' ?src=/?lang= into a sourceDetail we can see in the
+// pool, so we know which city/state/language page drove each registration. The
+// value is untrusted URL input, so keep it to a short, safe charset — the ingest
+// zod-validates it too (≤120 chars).
+function attribution(sp: Record<string, string | string[] | undefined>): string | undefined {
+  const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
+  const clean = (v: string | undefined) => v?.replace(/[^a-zA-Z0-9._-]/g, "").slice(0, 80);
+  const src = clean(first(sp.src));
+  const lang = clean(first(sp.lang));
+  if (!src) return undefined;
+  return `${src}${lang ? ` · ${lang}` : ""}`.slice(0, 120);
+}
+
 // The talent-network sign-up — the "front door" of the talent ecosystem. Unlike the
 // direct-apply form (which is for a specific opening), this invites people to register
 // for FUTURE openings. Same intake, tagged source=TALENT_NETWORK.
-export default function JoinTalentNetworkPage() {
+export default async function JoinTalentNetworkPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const sourceDetail = attribution(await searchParams);
   return (
     <main className="flex-1">
       <section className="mx-auto max-w-6xl px-6 py-16 sm:py-20">
@@ -57,7 +75,7 @@ export default function JoinTalentNetworkPage() {
             </div>
           </div>
 
-          <DirectApplyForm variant="network" />
+          <DirectApplyForm variant="network" sourceDetail={sourceDetail} />
         </div>
       </section>
     </main>

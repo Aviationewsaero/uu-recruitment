@@ -12,7 +12,10 @@ import { FormField, Label, FieldError, FieldHint } from "@/components/ui/Form";
 // so an oversized file fails instantly instead of after a 5 MB upload.
 const MAX_CV_BYTES = 5 * 1024 * 1024;
 
-export function DirectApplyForm({ variant = "apply" }: { variant?: "apply" | "network" } = {}) {
+export function DirectApplyForm({
+  variant = "apply",
+  sourceDetail,
+}: { variant?: "apply" | "network"; sourceDetail?: string } = {}) {
   const isNetwork = variant === "network";
   const [state, formAction, pending] = useActionState(
     submitDirectApplyAction,
@@ -48,7 +51,7 @@ export function DirectApplyForm({ variant = "apply" }: { variant?: "apply" | "ne
     >
       {/* Attributes the sign-up to its spoke; the ingest validates + defaults it. */}
       <input type="hidden" name="source" value={isNetwork ? "TALENT_NETWORK" : "CAREERS_FORM"} />
-      <input type="hidden" name="sourceDetail" value={isNetwork ? "careers.ews.aero talent network" : "careers.ews.aero direct-apply"} />
+      <input type="hidden" name="sourceDetail" value={sourceDetail ?? (isNetwork ? "careers.ews.aero talent network" : "careers.ews.aero direct-apply")} />
       <div className="grid gap-4 sm:grid-cols-2">
         <FormField>
           <Label required>Full name</Label>
