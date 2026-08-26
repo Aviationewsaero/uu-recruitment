@@ -22,6 +22,8 @@ export function DirectApplyForm({
     null
   );
   const [consent, setConsent] = useState(false);
+  // Never pre-ticked. A consent that arrives already agreed to is not one.
+  const [matchingConsent, setMatchingConsent] = useState(false);
   const [cvName, setCvName] = useState<string | null>(null);
 
   if (state?.ok) {
@@ -147,6 +149,25 @@ export function DirectApplyForm({
         />
       </FormField>
 
+      {/* ── Consent ──────────────────────────────────────────────────────────
+          TWO CHECKBOXES, DELIBERATELY, because they are two different purposes
+          and merging them would be worse for the candidate and for us.
+
+          The first is REQUIRED and unchanged: it covers evaluating THIS
+          application, including sharing with airport partner operators.
+
+          The second is OPTIONAL and covers something else entirely — staying on
+          the talent bank so InternAVIA can match you to FUTURE opportunities,
+          explicitly without external sharing. Its wording is copied verbatim
+          from the approved `internal-matching-v1` text already in production on
+          the InternAVIA profile wizard. Nothing here is newly drafted.
+
+          Why it matters: without the second box, applying leaves a CV we may
+          evaluate for one role and may not put in front of anyone afterwards.
+          That is how 127 candidates ended up unmatchable — they consented to an
+          application, not to a relationship. Neither box is pre-ticked, and
+          consent is never inferred from a CV upload.
+      ─────────────────────────────────────────────────────────────────────── */}
       <label className="flex items-start gap-3 cursor-pointer text-sm pt-2">
         <input
           type="checkbox"
@@ -161,6 +182,33 @@ export function DirectApplyForm({
           and CV, and sharing them with its airport partner operators, for the
           purpose of evaluating my application, in accordance with the Digital
           Personal Data Protection Act, 2023.
+        </span>
+      </label>
+
+      <label className="flex items-start gap-3 cursor-pointer text-sm">
+        <input
+          type="checkbox"
+          name="matchingConsent"
+          checked={matchingConsent}
+          onChange={(e) => setMatchingConsent(e.target.checked)}
+          className="mt-0.5 h-4 w-4 rounded border-brand-border text-brand-green focus:ring-brand-green"
+        />
+        <span className="text-brand-text">
+          <span className="font-semibold">Keep me on the talent network</span>{" "}
+          <span className="text-brand-muted">(optional)</span> — I agree that InternAVIA
+          (Elite World Services Limited) may store and process my profile and CV to
+          maintain my talent profile and identify potentially relevant aviation
+          employment, internship and career opportunities. I understand that submitting
+          my information does not guarantee an interview, selection, employment,
+          internship or placement.
+          <span className="mt-1.5 block text-xs text-brand-muted">
+            Your information is used by InternAVIA for talent-profile management and
+            internal opportunity matching. Your information will not be shared with
+            external employers or vendors under this consent alone. External sharing,
+            where applicable, must be governed separately. You may update your profile
+            or request withdrawal/deletion of your information, subject to applicable
+            legal and operational retention requirements.
+          </span>
         </span>
       </label>
 
