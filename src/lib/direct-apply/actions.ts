@@ -38,6 +38,11 @@ const schema = z.object({
   consent: z
     .boolean()
     .refine((v) => v === true, "Consent required to submit"),
+  // OPTIONAL, and a different purpose from `consent` above. That one covers
+  // evaluating this application; this one covers staying on the talent network
+  // so InternAVIA can match against future mandates. Defaults to false — an
+  // absent checkbox is a refusal, never an omission to be filled in later.
+  matchingConsent: z.boolean().optional().default(false),
   // Which spoke this came from (a role application vs the talent-network sign-up).
   // Validated + defaulted server-side on the InternAVIA ingest, so free-text is fine.
   source: z.string().trim().max(40).optional().or(z.literal("")),
@@ -63,6 +68,10 @@ async function saveToTalentPool(
   }
   if (d.message) fd.set("message", d.message);
   fd.set("consent", "true");
+  // Sent only when the candidate ticked it. InternAVIA records a versioned
+  // ConsentRecord on receipt; without this the profile is stored but is not
+  // matchable, which is the honest outcome rather than a silent assumption.
+  if (d.matchingConsent) fd.set("matchingConsent", "true");
   if (d.source) fd.set("source", d.source); // TALENT_NETWORK | CAREERS_FORM (validated on ingest)
   fd.set("sourceDetail", d.sourceDetail || "careers.ews.aero direct-apply");
   if (cv) fd.set("cv", cv, cv.name);
@@ -118,6 +127,8 @@ export async function submitDirectApplyAction(
   }
   raw.consent =
     raw.consent === true || raw.consent === "true" || raw.consent === "on";
+  raw.matchingConsent =
+    raw.matchingConsent === true || raw.matchingConsent === "true" || raw.matchingConsent === "on";
 
   const parsed = schema.safeParse(raw);
   if (!parsed.success) {
