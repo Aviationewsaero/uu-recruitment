@@ -1,0 +1,48 @@
+name: Verify
+
+# This repo holds the University of Uttarakhand recruitment drive — real
+# candidate records — and deployed to production on every push with no check
+# in front of it.
+#
+# There are no tests here yet. Typecheck is the gate; lint is reported but does
+# NOT block, because 23 ESLint errors already exist in the tree. Switching a
+# gate on while it is red teaches everyone to ignore red, which costs more than
+# the debt it was meant to collect. Clear those 23 and make the lint step
+# blocking — that is a small, separate job.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: typecheck (blocking) · lint (advisory)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      # postinstall runs `prisma generate`, which reads the schema and does not
+      # connect — no DATABASE_URL is needed here, and none should be given.
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Lint (advisory — 23 pre-existing errors)
+        continue-on-error: true
+        run: npm run lint
