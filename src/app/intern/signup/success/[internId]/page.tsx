@@ -55,7 +55,7 @@ export default function SignupSuccessPage({
                   Awaiting Admin Approval
                 </p>
                 <p className="text-sm text-brand-muted">
-                  An admin will review and activate your account soon. You'll
+                  An admin will review and activate your account soon. You&apos;ll
                   receive an email confirmation.
                 </p>
               </div>
@@ -64,7 +64,7 @@ export default function SignupSuccessPage({
               <span className="mt-1 text-brand-info">ℹ</span>
               <div>
                 <p className="font-semibold text-brand-text">
-                  What's Next?
+                  What&apos;s Next?
                 </p>
                 <p className="text-sm text-brand-muted">
                   Once approved, you can log in and access study materials,

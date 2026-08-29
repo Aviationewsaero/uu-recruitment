@@ -4,11 +4,12 @@ name: Verify
 # candidate records — and deployed to production on every push with no check
 # in front of it.
 #
-# There are no tests here yet. Typecheck is the gate; lint is reported but does
-# NOT block, because 23 ESLint errors already exist in the tree. Switching a
-# gate on while it is red teaches everyone to ignore red, which costs more than
-# the debt it was meant to collect. Clear those 23 and make the lint step
-# blocking — that is a small, separate job.
+# There are no tests here yet, so typecheck and lint are the gate. Both block.
+#
+# Lint was advisory for exactly one day: the tree carried 23 ESLint errors, and
+# a gate that is red on the day it ships teaches everyone to ignore red. Those
+# 23 are now fixed, so the step blocks — which is the only state in which it
+# does anything.
 
 on:
   push:
@@ -21,7 +22,7 @@ concurrency:
 
 jobs:
   verify:
-    name: typecheck (blocking) · lint (advisory)
+    name: typecheck · lint
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -43,6 +44,5 @@ jobs:
       - name: Typecheck
         run: npx tsc --noEmit
 
-      - name: Lint (advisory — 23 pre-existing errors)
-        continue-on-error: true
+      - name: Lint
         run: npm run lint

@@ -94,7 +94,7 @@ export function InternLoginForm({ reason }: { reason: string | null }) {
 
       <div className="mt-6 border-t border-brand-border pt-6 text-center">
         <p className="text-sm text-brand-muted">
-          Don't have an account?{" "}
+          Don&apos;t have an account?{" "}
           <Link href="/intern/signup" className="font-medium text-brand-blue hover:underline">
             Sign up
           </Link>

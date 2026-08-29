@@ -47,7 +47,7 @@ export function PhotoField({
       console.warn(
         "[PhotoField] auto-fallback at 8s - using original file"
       );
-      useOriginalAnyway();
+      acceptOriginalAnyway();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tick, status]);
@@ -96,7 +96,7 @@ export function PhotoField({
     }
   }
 
-  function useOriginalAnyway() {
+  function acceptOriginalAnyway() {
     const f = fallbackRef.current;
     if (!f) return;
     const previewUrl = URL.createObjectURL(f);
@@ -165,7 +165,7 @@ export function PhotoField({
           {elapsed >= 2 && (
             <button
               type="button"
-              onClick={useOriginalAnyway}
+              onClick={acceptOriginalAnyway}
               className="w-full rounded-md bg-brand-green px-4 py-3 text-base font-bold text-white hover:bg-brand-green-dark active:scale-[0.98] shadow-md"
             >
               ⚡ Tap here to use photo NOW

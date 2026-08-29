@@ -22,14 +22,26 @@ export function SlideViewer({
   slideUrls,
 }: SlideViewerProps) {
   const [currentSlide, setCurrentSlide] = useState(lastSlideViewed);
-  const [watermarkedImage, setWatermarkedImage] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState(false);
+  // Each of these records the slide it belongs to. Three plain flags had to be
+  // reset at the top of the load effect every time the slide changed, and that
+  // reset is exactly the synchronous setState-in-an-effect that causes a second
+  // render pass on every navigation. Tagging the state with its slide removes
+  // the need to reset anything: state for the wrong slide simply does not match.
+  const [rendered, setRendered] = useState<{ slide: number; dataUrl: string } | null>(null);
+  const [failedSlide, setFailedSlide] = useState<number | null>(null);
+  // Bumped by Retry. Without it the retry button reset two flags, changed no
+  // dependency, never re-ran the loader, and left the viewer spinning forever.
+  const [reloadNonce, setReloadNonce] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const viewerRef = useRef<HTMLDivElement>(null);
 
   const slide = slides[currentSlide - 1];
+  const slideUrl = slide ? slideUrls[slide.slideNumber] : undefined;
+  // A slide with no signed URL is a known, immediate failure — it is not
+  // something the loader discovers. Deriving it means the effect never has to
+  // write state synchronously just to describe what the props already say.
+  const urlMissing = Boolean(slide) && !slideUrl;
 
   const logView = useCallback(async (slideNum: number) => {
     try {
@@ -43,18 +55,7 @@ export function SlideViewer({
 
   // Load slide image and burn watermark onto canvas
   useEffect(() => {
-    if (!slide) return;
-
-    const url = slideUrls[slide.slideNumber];
-    if (!url) {
-      setIsLoading(false);
-      setLoadError(true);
-      return;
-    }
-
-    setIsLoading(true);
-    setLoadError(false);
-    setWatermarkedImage(null);
+    if (!slide || !slideUrl) return;
 
     const img = new Image();
     // Same-origin proxy URL — no crossOrigin attribute needed, canvas won't be tainted
@@ -88,19 +89,17 @@ export function SlideViewer({
       ctx.textAlign = "left";
       ctx.fillText(watermarkText, padding, img.height - padding - fontSize / 4);
 
-      setWatermarkedImage(canvas.toDataURL("image/jpeg", 0.92));
-      setIsLoading(false);
+      setRendered({ slide: slide.slideNumber, dataUrl: canvas.toDataURL("image/jpeg", 0.92) });
       logView(currentSlide);
     };
 
     img.onerror = () => {
-      console.error("Slide failed to load:", url);
-      setIsLoading(false);
-      setLoadError(true);
+      console.error("Slide failed to load:", slideUrl);
+      setFailedSlide(slide.slideNumber);
     };
 
-    img.src = url;
-  }, [slide, currentSlide, internEmail, logView, slideUrls]);
+    img.src = slideUrl;
+  }, [slide, slideUrl, currentSlide, internEmail, logView, reloadNonce]);
 
   // Update reading progress
   useEffect(() => {
@@ -115,6 +114,14 @@ export function SlideViewer({
     }).catch(() => {});
   }, [currentSlide, material.id]);
 
+  const toggleFullscreen = useCallback(async () => {
+    if (!viewerRef.current) return;
+    try {
+      if (!document.fullscreenElement) await viewerRef.current.requestFullscreen();
+      else await document.exitFullscreen();
+    } catch { /* fullscreen not supported */ }
+  }, []);
+
   // Keyboard navigation
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -124,7 +131,7 @@ export function SlideViewer({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [currentSlide, slides.length]);
+  }, [currentSlide, slides.length, toggleFullscreen]);
 
   // Fullscreen change
   useEffect(() => {
@@ -133,13 +140,11 @@ export function SlideViewer({
     return () => document.removeEventListener("fullscreenchange", onChange);
   }, []);
 
-  const toggleFullscreen = async () => {
-    if (!viewerRef.current) return;
-    try {
-      if (!document.fullscreenElement) await viewerRef.current.requestFullscreen();
-      else await document.exitFullscreen();
-    } catch { /* fullscreen not supported */ }
-  };
+  // A slide with no URL is never "loading" and is always an error.
+  const currentNumber = slide?.slideNumber ?? -1;
+  const watermarkedImage = rendered?.slide === currentNumber ? rendered.dataUrl : null;
+  const showError = urlMissing || failedSlide === currentNumber;
+  const showLoading = !watermarkedImage && !showError;
 
   const progress = Math.round((currentSlide / slides.length) * 100);
 
@@ -167,16 +172,16 @@ export function SlideViewer({
           {/* Hidden canvas for watermarking */}
           <canvas ref={canvasRef} className="hidden" />
 
-          {isLoading ? (
+          {showLoading ? (
             <div className="flex h-96 flex-col items-center justify-center gap-3 text-white">
               <div className="h-8 w-8 animate-spin rounded-full border-2 border-white border-t-transparent" />
               <p className="text-sm text-gray-400">Loading slide {currentSlide}…</p>
             </div>
-          ) : loadError ? (
+          ) : showError ? (
             <div className="flex h-96 flex-col items-center justify-center gap-3">
               <p className="text-red-400">Failed to load slide</p>
               <button
-                onClick={() => { setLoadError(false); setIsLoading(true); }}
+                onClick={() => { setFailedSlide(null); setReloadNonce((n) => n + 1); }}
                 className="rounded-md bg-gray-800 px-4 py-2 text-sm text-white hover:bg-gray-700"
               >
                 Retry

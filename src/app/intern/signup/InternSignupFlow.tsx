@@ -25,6 +25,12 @@ import {
   GENDER_OPTIONS,
   DEPARTMENT_OPTIONS,
   type InternSignupFormValues,
+  type EmailVerificationValues,
+  type OtpVerificationValues,
+  type PasswordValues,
+  type PersonalDetailsValues,
+  type UniversityDetailsValues,
+  type EmergencyDetailsValues,
 } from "@/lib/intern/schema";
 import {
   requestInternOtpAction,
@@ -49,22 +55,22 @@ export function InternSignupFlow() {
     setStep("password");
   };
 
-  const handlePasswordNext = (data: any) => {
+  const handlePasswordNext = (data: PasswordValues) => {
     setFormData((prev) => ({ ...prev, ...data }));
     setStep("personal");
   };
 
-  const handlePersonalDetailsNext = (data: any) => {
+  const handlePersonalDetailsNext = (data: PersonalDetailsValues) => {
     setFormData((prev) => ({ ...prev, ...data }));
     setStep("university");
   };
 
-  const handleUniversityDetailsNext = (data: any) => {
+  const handleUniversityDetailsNext = (data: UniversityDetailsValues) => {
     setFormData((prev) => ({ ...prev, ...data }));
     setStep("emergency");
   };
 
-  const handleEmergencyDetailsNext = (data: any) => {
+  const handleEmergencyDetailsNext = (data: EmergencyDetailsValues) => {
     setFormData((prev) => ({ ...prev, ...data }));
     setStep("confirm");
   };
@@ -169,13 +175,13 @@ function StepIndicator({ current }: { current: Step }) {
 // ──────────── Email Step ────────────
 
 function EmailStep({ onProceed }: { onProceed: (email: string) => void }) {
-  const form = useForm({
+  const form = useForm<EmailVerificationValues>({
     resolver: zodResolver(emailVerificationSchema),
     defaultValues: { email: "" },
   });
   const [isPending, startTransition] = useTransition();
 
-  const onSubmit = async (data: any) => {
+  const onSubmit = async (data: EmailVerificationValues) => {
     startTransition(async () => {
       const result = await requestInternOtpAction(data.email);
       if (result.success) {
@@ -224,13 +230,13 @@ function OtpStep({
   onVerified: () => void;
   onBack: () => void;
 }) {
-  const form = useForm({
+  const form = useForm<OtpVerificationValues>({
     resolver: zodResolver(otpVerificationSchema),
     defaultValues: { otp: "" },
   });
   const [isPending, startTransition] = useTransition();
 
-  const onSubmit = async (data: any) => {
+  const onSubmit = async (data: OtpVerificationValues) => {
     startTransition(async () => {
       const result = await verifyInternOtpAction(email, data.otp);
       if (result.success) {
@@ -286,16 +292,16 @@ function PasswordStep({
   onNext,
   onBack,
 }: {
-  onNext: (data: any) => void;
+  onNext: (data: PasswordValues) => void;
   onBack: () => void;
 }) {
-  const form = useForm({
+  const form = useForm<PasswordValues>({
     resolver: zodResolver(passwordSchema),
     defaultValues: { password: "", confirmPassword: "" },
   });
   const [isPending, startTransition] = useTransition();
 
-  const onSubmit = (data: any) => {
+  const onSubmit = (data: PasswordValues) => {
     startTransition(async () => {
       onNext(data);
     });
@@ -352,15 +358,15 @@ function PersonalDetailsStep({
   onNext,
   onBack,
 }: {
-  onNext: (data: any) => void;
+  onNext: (data: PersonalDetailsValues) => void;
   onBack: () => void;
 }) {
-  const form = useForm({
+  const form = useForm<PersonalDetailsValues>({
     resolver: zodResolver(personalDetailsSchema),
   });
   const [isPending, startTransition] = useTransition();
 
-  const onSubmit = (data: any) => {
+  const onSubmit = (data: PersonalDetailsValues) => {
     startTransition(async () => {
       onNext(data);
     });
@@ -508,15 +514,15 @@ function UniversityDetailsStep({
   onNext,
   onBack,
 }: {
-  onNext: (data: any) => void;
+  onNext: (data: UniversityDetailsValues) => void;
   onBack: () => void;
 }) {
-  const form = useForm({
+  const form = useForm<UniversityDetailsValues>({
     resolver: zodResolver(universityDetailsSchema),
   });
   const [isPending, startTransition] = useTransition();
 
-  const onSubmit = (data: any) => {
+  const onSubmit = (data: UniversityDetailsValues) => {
     startTransition(async () => {
       onNext(data);
     });
@@ -728,15 +734,15 @@ function EmergencyDetailsStep({
   onNext,
   onBack,
 }: {
-  onNext: (data: any) => void;
+  onNext: (data: EmergencyDetailsValues) => void;
   onBack: () => void;
 }) {
-  const form = useForm({
+  const form = useForm<EmergencyDetailsValues>({
     resolver: zodResolver(emergencyDetailsSchema),
   });
   const [isPending, startTransition] = useTransition();
 
-  const onSubmit = (data: any) => {
+  const onSubmit = (data: EmergencyDetailsValues) => {
     startTransition(async () => {
       onNext(data);
     });
@@ -899,7 +905,7 @@ function ConfirmStep({
       <FormSection title="Next Steps">
         <p className="text-sm text-brand-muted">
           Once you complete signup, an admin will review and activate your
-          account. You'll receive an email confirmation.
+          account. You&apos;ll receive an email confirmation.
         </p>
       </FormSection>
 

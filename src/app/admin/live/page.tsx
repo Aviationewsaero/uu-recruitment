@@ -166,8 +166,11 @@ export default async function LivePage() {
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {rooms.map((r) => {
             const lastDone = r.interviewLogs[0]?.endedAt ?? null;
+            // `now` is captured once at the top of the request. Re-reading the
+            // clock per tile made every room measured against a slightly
+            // different instant, and made the render impure for no benefit.
             const idle = !r.currentTokenId && lastDone
-              ? Date.now() - lastDone.getTime()
+              ? now.getTime() - lastDone.getTime()
               : 0;
             const hot = !!r.currentTokenId;
             const stale = !hot && idle > 15 * ONE_MIN && lastDone;

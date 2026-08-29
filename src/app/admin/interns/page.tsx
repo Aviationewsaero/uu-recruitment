@@ -2,6 +2,8 @@ import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { requireRole } from "@/lib/auth-user";
 import { prisma } from "@/lib/prisma";
+import type { Prisma } from "@/generated/prisma/client";
+import { InternStatus, InternshipDepartment } from "@/generated/prisma/enums";
 import { InternStatusBadge, DepartmentBadge } from "./InternBadges";
 import { InternsFilters } from "./InternsFilters";
 
@@ -18,13 +20,22 @@ export default async function InternsPage({ searchParams }: PageProps) {
   // Parse filters
   const statusParam = (sp.status as string) || "";
   const departmentParam = (sp.department as string) || "";
-  const status = statusParam ? statusParam.split(",") : [];
-  const department = departmentParam ? departmentParam.split(",") : [];
+  // Filters arrive from the query string, so they are whatever the URL says.
+  // Handing an unknown value straight to Prisma as an enum filter throws, which
+  // means ?status=anything turns this admin page into a 500. Typing `where`
+  // properly is what surfaced it — `any` had been hiding it.
+  const isStatus = (v: string): v is InternStatus =>
+    (Object.values(InternStatus) as string[]).includes(v);
+  const isDepartment = (v: string): v is InternshipDepartment =>
+    (Object.values(InternshipDepartment) as string[]).includes(v);
+
+  const status = statusParam ? statusParam.split(",").filter(isStatus) : [];
+  const department = departmentParam ? departmentParam.split(",").filter(isDepartment) : [];
   const page = parseInt((sp.page as string) || "1", 10);
   const pageSize = 25;
 
   // Build where clause
-  const where: any = {};
+  const where: Prisma.InternWhereInput = {};
   if (status.length > 0) where.status = { in: status };
   if (department.length > 0) where.department = { in: department };
 
